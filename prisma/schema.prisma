@@ -23,6 +23,13 @@ model User {
   wishes        Wish[]
   photos        Photo[]
   imports       ImportBatch[]
+  comments      MemoryComment[]
+  reactions     MemoryReaction[]
+  reads         MemoryRead[]
+  moods         MoodEntry[]
+  drafts        MemoryDraft[]
+  sentLetters   FutureLetter[] @relation("LetterSender")
+  receivedLetters FutureLetter[] @relation("LetterRecipient")
 
   @@map("app_user")
 }
@@ -117,6 +124,9 @@ model Memory {
   wishId    String?       @unique @db.VarChar(64)
   wish      Wish?         @relation(fields: [wishId], references: [id], onDelete: SetNull)
   photos    MemoryPhoto[]
+  comments  MemoryComment[]
+  reactions MemoryReaction[]
+  reads     MemoryRead[]
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
@@ -156,6 +166,9 @@ model Photo {
   owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
   status      String           @default("ready") @db.VarChar(16)
   memories    MemoryPhoto[]
+  albumItems  AlbumItem[]
+  draftPhotos DraftPhoto[]
+  letterPhotos LetterPhoto[]
   covers      CoupleSettings[]
   createdAt   DateTime         @default(now())
 
@@ -181,4 +194,130 @@ model ImportBatch {
   createdAt DateTime @default(now())
 
   @@map("import_batch")
+}
+
+
+model MemoryComment {
+  id String @id @default(uuid()) @db.VarChar(36)
+  memoryId String @db.VarChar(64)
+  authorId String @db.VarChar(191)
+  body String @db.VarChar(500)
+  createdAt DateTime @default(now())
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  @@index([memoryId, createdAt])
+  @@index([authorId])
+  @@map("memory_comment")
+}
+model MemoryReaction {
+  memoryId String @db.VarChar(64)
+  userId String @db.VarChar(191)
+  createdAt DateTime @default(now())
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([memoryId, userId])
+  @@index([userId])
+  @@map("memory_reaction")
+}
+model MemoryRead {
+  memoryId String @db.VarChar(64)
+  userId String @db.VarChar(191)
+  readAt DateTime @default(now())
+  memory Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@id([memoryId, userId])
+  @@index([userId])
+  @@map("memory_read")
+}
+model Album {
+  id String @id @default(uuid()) @db.VarChar(36)
+  name String @db.VarChar(60)
+  createdAt DateTime @default(now())
+  items AlbumItem[]
+  @@map("album")
+}
+model AlbumItem {
+  id String @id @default(uuid()) @db.VarChar(36)
+  albumId String @db.VarChar(36)
+  image String @db.VarChar(255)
+  photoId String? @db.VarChar(36)
+  createdAt DateTime @default(now())
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  photo Photo? @relation(fields: [photoId], references: [id], onDelete: Restrict)
+  @@unique([albumId, image])
+  @@index([photoId])
+  @@map("album_item")
+}
+model MoodEntry {
+  id String @id @default(uuid()) @db.VarChar(36)
+  authorId String @db.VarChar(191)
+  date String @db.Char(10)
+  mood String @db.VarChar(20)
+  note String @db.VarChar(500)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  @@unique([authorId, date])
+  @@index([date])
+  @@map("mood_entry")
+}
+model MemoryDraft {
+  id String @id @default(uuid()) @db.VarChar(36)
+  authorId String @db.VarChar(191)
+  draftKey String @db.VarChar(64)
+  title String @db.VarChar(60)
+  body String @db.Text
+  date String @db.VarChar(10)
+  images Json
+  updatedAt DateTime @updatedAt
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  photos DraftPhoto[]
+  @@unique([authorId, draftKey])
+  @@map("memory_draft")
+}
+model DraftPhoto {
+  draftId String @db.VarChar(36)
+  photoId String @db.VarChar(36)
+  draft MemoryDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Restrict)
+  @@id([draftId, photoId])
+  @@index([photoId])
+  @@map("draft_photo")
+}
+
+model Anniversary {
+  id String @id @default(uuid()) @db.VarChar(36)
+  name String @db.VarChar(60)
+  date String @db.Char(10)
+  yearly Boolean @default(true)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("anniversary")
+}
+model FutureLetter {
+  id String @id @default(uuid()) @db.VarChar(36)
+  authorId String @db.VarChar(191)
+  recipientId String @db.VarChar(191)
+  title String @db.VarChar(80)
+  body String @db.Text
+  unlockDate String @db.Char(10)
+  createdAt DateTime @default(now())
+  author User @relation("LetterSender", fields: [authorId], references: [id], onDelete: Restrict)
+  recipient User @relation("LetterRecipient", fields: [recipientId], references: [id], onDelete: Restrict)
+  photos LetterPhoto[]
+  @@index([authorId])
+  @@index([recipientId, unlockDate])
+  @@map("future_letter")
+}
+model LetterPhoto {
+  letterId String @db.VarChar(36)
+  photoId String @db.VarChar(36)
+  position Int
+  letter FutureLetter @relation(fields: [letterId], references: [id], onDelete: Cascade)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Restrict)
+  @@id([letterId, photoId])
+  @@index([photoId])
+  @@map("letter_photo")
 }

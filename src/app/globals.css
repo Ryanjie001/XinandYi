@@ -1769,3 +1769,477 @@ form > .field + .field-hint {
 .birthday-hint {
   margin: -2px 0 22px;
 }
+
+/* Shared interactions, photo albums and daily moods */
+.nav-unread {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #b67373;
+  flex: none;
+}
+.unread-label {
+  color: var(--rose);
+}
+.draft-fields {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.memory-interaction {
+  border-top: 1px solid var(--line);
+  padding: 22px 0;
+  margin-top: 24px;
+}
+.memory-interaction h3 {
+  font-size: 14px;
+  margin: 20px 0 12px;
+}
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.comment-item > div {
+  flex: 1;
+  min-width: 0;
+}
+.comment-item strong {
+  font-size: 12px;
+  font-weight: 500;
+}
+.comment-item p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.comment-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+}
+.comment-form input,
+.album-create input,
+.album-manage input,
+.album-target select,
+.mood-date input {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+}
+.comment-form input {
+  flex: 1;
+}
+.mood-board {
+  margin: 0 0 54px;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.mood-board .section-heading {
+  margin-bottom: 20px;
+}
+.mood-board .section-heading p {
+  margin-top: 3px;
+}
+.mood-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mood-choices button,
+.album-tabs button {
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  padding: 6px 13px;
+  color: var(--muted);
+}
+.mood-choices button.selected,
+.album-tabs button.active {
+  border-color: #9cb9cf;
+  background: var(--rose-pale);
+  color: var(--rose-dark);
+}
+.mood-note {
+  margin: 18px 0 14px;
+}
+.mood-note textarea {
+  min-height: 70px;
+}
+.mood-history {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+.mood-history h3 {
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.mood-entry {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+.mood-entry > div {
+  flex: 1;
+  min-width: 0;
+}
+.mood-entry p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.feature-page-heading {
+  padding: 52px 0 32px;
+}
+.feature-page-heading h1 {
+  font-size: 34px;
+  margin: 7px 0;
+}
+.album-toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.album-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.album-tabs span {
+  font-size: 11px;
+  margin-left: 4px;
+}
+.album-create,
+.album-manage form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.album-manage {
+  display: flex;
+  gap: 20px;
+  margin-top: 18px;
+}
+.album-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--muted);
+  margin-top: 24px;
+}
+.album-month {
+  margin-top: 35px;
+}
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+.album-photo {
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.album-image-button {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: var(--rose-pale);
+}
+.album-image-button img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.album-photo-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.album-photo-meta > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 700px) {
+  .main-nav {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 3px;
+  }
+  .main-nav a {
+    gap: 4px;
+  }
+  .mood-board {
+    padding: 20px;
+    margin-bottom: 38px;
+  }
+  .mood-board .section-heading {
+    align-items: flex-start;
+  }
+  .mood-date input {
+    max-width: 145px;
+    font-size: 14px;
+  }
+  .feature-page-heading {
+    padding: 34px 0 24px;
+  }
+  .feature-page-heading h1 {
+    font-size: 28px;
+  }
+  .album-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .album-create {
+    width: 100%;
+  }
+  .album-create input {
+    flex: 1;
+  }
+  .album-photo-meta {
+    padding: 8px;
+    font-size: 12px;
+  }
+}
+
+.anniversary-reminder {
+  margin: 0 0 24px;
+  padding: 14px 18px;
+  background: var(--rose-pale);
+  color: var(--rose-dark);
+  border-radius: 6px;
+}
+.anniversary-repeat {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.anniversary-form .form-actions {
+  margin-top: 18px;
+}
+.anniversary-manage-list {
+  margin-top: 26px;
+  border-top: 1px solid var(--line);
+}
+.anniversary-manage-list > div {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.anniversary-manage-list > div > div {
+  flex: 1;
+  min-width: 0;
+}
+.anniversary-manage-list strong {
+  overflow-wrap: anywhere;
+}
+.letter-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+}
+.letter-hint {
+  margin: -12px 0 20px;
+}
+.letter-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+.letter-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 24px;
+}
+.letter-card h2 {
+  font-size: 19px;
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.letter-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+.letter-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.9;
+}
+.letter-photos {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+.letter-photos img {
+  width: 100%;
+  max-height: 600px;
+  object-fit: contain;
+  background: var(--paper);
+  border-radius: 5px;
+}
+@media (max-width: 700px) {
+  .main-nav {
+    gap: 0;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+  .main-nav a {
+    gap: 3px;
+    font-size: 11px;
+  }
+  .main-nav a > svg {
+    width: 15px;
+    height: 15px;
+  }
+  .letter-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .letter-list {
+    grid-template-columns: 1fr;
+  }
+  .letter-card {
+    padding: 20px;
+  }
+  .anniversary-card .section-heading {
+    flex-wrap: wrap;
+  }
+  .anniversary-form .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+
+/* Quiet, consistent motion across the shared interface. */
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 180ms;
+  --motion-smooth: 320ms;
+}
+.page-transition {
+  animation: page-enter 360ms var(--ease-out) both;
+}
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes backdrop-enter {
+  from { background-color: transparent; }
+  to { background-color: #23354455; }
+}
+.modal[open] { animation: dialog-enter 260ms var(--ease-out) both; }
+.modal[open]::backdrop { animation: backdrop-enter 260ms ease-out both; }
+.button, .text-button, .icon-button, .filter-tabs button,
+.mood-choices button, .album-tabs button, .identity-option,
+.wish-check, .wish-add-card, .person-menu summary, .person-dropdown button,
+.main-nav a, .first-day-note {
+  transition: color var(--motion-fast) ease, background-color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease,
+    transform var(--motion-fast) var(--ease-out);
+}
+.button:not(:disabled):active, .icon-button:not(:disabled):active,
+.filter-tabs button:active, .mood-choices button:active, .album-tabs button:active,
+.identity-option:active, .wish-check:not(:disabled):active, .wish-add-card:not(:disabled):active {
+  transform: scale(0.97);
+}
+.field input, .field textarea, .field select, .search-input {
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+.search-input:focus-within { box-shadow: 0 0 0 3px #48749812; }
+.memory-image img, .album-image-button img {
+  transition: transform 500ms var(--ease-out);
+}
+.album-image-button { overflow: hidden; }
+.progress-track > span { transition: width 450ms var(--ease-out); }
+.person-dropdown { animation: page-enter 220ms var(--ease-out) both; }
+@media (hover: hover) {
+  .main-nav a:hover, .first-day-note:hover { color: var(--rose); }
+  .button-primary:hover:not(:disabled) { box-shadow: 0 5px 14px #355e7f25; }
+  .button-secondary:hover:not(:disabled), .wish-add-card:hover:not(:disabled) {
+    box-shadow: 0 4px 14px #2537470b;
+  }
+  .filter-tabs button:hover, .mood-choices button:hover, .album-tabs button:hover {
+    background-color: var(--rose-pale);
+    color: var(--rose-dark);
+  }
+  .memory-card:hover .memory-image img, .album-image-button:hover img { transform: scale(1.035); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-transition, .modal[open], .modal[open]::backdrop, .person-dropdown { animation: none; }
+  .memory-image img, .album-image-button img { transition: none; }
+}
+
+/* Mood choices pair a familiar expression with its label. */
+.mood-choices {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 8px;
+}
+.mood-choices button {
+  min-width: 0;
+  min-height: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 4px;
+  font-size: 12px;
+}
+.mood-emoji {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  font-size: 25px;
+  line-height: 1.2;
+}
+.mood-choices button.selected {
+  box-shadow: inset 0 0 0 1px #9cb9cf;
+}
+@media (max-width: 700px) {
+  .mood-choices { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+  .mood-choices button { min-height: 72px; }
+  .mood-emoji { font-size: 23px; }
+}
+
+/* Each account has its own set of character expressions. */
+.mood-character {
+  display: block;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 auto;
+  background-repeat: no-repeat;
+  background-size: 500% 200%;
+}
+.mood-choices button { min-height: 104px; }
+@media (max-width: 700px) {
+  .mood-character { width: min(100%, 48px); height: auto; aspect-ratio: 1; }
+  .mood-choices button { min-height: 90px; }
+}

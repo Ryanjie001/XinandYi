@@ -11,6 +11,16 @@ function timestamp(date: string) {
   const [year, month, day] = date.split("-").map(Number);
   return Date.UTC(year, month - 1, day);
 }
+export function daysUntil(date: string, current = today()) {
+  return Math.round((timestamp(date) - timestamp(current)) / DAY);
+}
+export function anniversaryRemaining(date: string, yearly: boolean, current = today()) {
+  if (!yearly || date > current) return daysUntil(date, current);
+  return nextOccurrence(date, current);
+}
+export function isOnThisDay(date: string, current = today()) {
+  return date.slice(5) === current.slice(5) && date.slice(0, 4) < current.slice(0, 4);
+}
 export function togetherDays(start: string) {
   if (!start) return null;
   const days = Math.floor((timestamp(today()) - timestamp(start)) / DAY) + 1;
@@ -21,9 +31,8 @@ export function readableDate(date: string, withYear = false) {
   const [year, month, day] = date.split("-").map(Number);
   return (withYear ? year + " 年 " : "") + month + " 月 " + day + " 日";
 }
-export function nextOccurrence(date: string) {
+export function nextOccurrence(date: string, current = today()) {
   if (!date) return null;
-  const current = today();
   const year = Number(current.slice(0, 4));
   const [, month, day] = date.split("-").map(Number);
   const occurrence = (y: number) => {

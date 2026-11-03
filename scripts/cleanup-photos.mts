@@ -18,7 +18,14 @@ let candidates = 0,
   removed = 0;
 try {
   const photos = await db.photo.findMany({
-    where: { createdAt: { lt: cutoff }, memories: { none: {} }, covers: { none: {} } },
+    where: {
+      createdAt: { lt: cutoff },
+      memories: { none: {} },
+      covers: { none: {} },
+      albumItems: { none: {} },
+      draftPhotos: { none: {} },
+      letterPhotos: { none: {} },
+    },
     take: 50,
     orderBy: { createdAt: "asc" },
   });
@@ -35,9 +42,27 @@ try {
       await tx.$queryRaw`SELECT id FROM photo WHERE id=${p.id} FOR UPDATE`;
       const current = await tx.photo.findUnique({
         where: { id: p.id },
-        include: { _count: { select: { memories: true, covers: true } } },
+        include: {
+          _count: {
+            select: {
+              memories: true,
+              covers: true,
+              albumItems: true,
+              draftPhotos: true,
+              letterPhotos: true,
+            },
+          },
+        },
       });
-      if (!current || current._count.memories || current._count.covers) return false;
+      if (
+        !current ||
+        current._count.memories ||
+        current._count.covers ||
+        current._count.albumItems ||
+        current._count.draftPhotos ||
+        current._count.letterPhotos
+      )
+        return false;
       await tx.photo.update({ where: { id: p.id }, data: { status: "deleting" } });
       return true;
     });

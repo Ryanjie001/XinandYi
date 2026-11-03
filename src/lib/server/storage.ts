@@ -72,12 +72,15 @@ export async function uploadPhoto(bytes: Buffer, ownerId: string) {
 export async function photoUrl(id: string, ownerId: string) {
   const photo = await database().photo.findUnique({
     where: { id },
-    include: { _count: { select: { memories: true, covers: true } } },
+    include: { _count: { select: { memories: true, covers: true, albumItems: true } } },
   });
   if (
     !photo ||
     photo.status !== "ready" ||
-    (photo.ownerId !== ownerId && !photo._count.memories && !photo._count.covers)
+    (photo.ownerId !== ownerId &&
+      !photo._count.memories &&
+      !photo._count.covers &&
+      !photo._count.albumItems)
   )
     throw new HttpError(404, "照片不存在。");
   const result = await storage().getObjectUrl({

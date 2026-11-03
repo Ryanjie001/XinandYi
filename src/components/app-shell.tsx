@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BookOpen, Heart, LogOut, Settings2, ListChecks } from "lucide-react";
+import { BookOpen, Heart, LogOut, Settings2, ListChecks, Images, Mail } from "lucide-react";
 import { PasswordDialog } from "@/components/password-dialog";
 import { SettingsDialog } from "@/components/forms";
 import { useStore } from "@/lib/store";
@@ -33,6 +33,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const nav = [
     { href: "/", label: "我们", icon: Heart },
     { href: "/journal", label: "手记", icon: BookOpen },
+    { href: "/albums", label: "相册", icon: Images },
+    { href: "/letters", label: "信件", icon: Mail },
     { href: "/wishes", label: "愿望", icon: ListChecks },
   ];
   return (
@@ -50,6 +52,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <Icon size={18} strokeWidth={1.5} />
                 <span>{label}</span>
+                {href === "/journal" &&
+                  data.memories.some((memory) => (memory.unreadComments || 0) > 0) && (
+                    <span className="nav-unread" aria-label="有新留言" />
+                  )}
               </Link>
             ))}
           </nav>
@@ -114,7 +120,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         )}
-        {children}
+        <div className="page-transition" key={pathname}>{children}</div>
       </main>
       <footer className="site-footer">
         <span>新 & 怡</span>

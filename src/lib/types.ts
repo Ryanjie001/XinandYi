@@ -9,7 +9,32 @@ export type Memory = {
   demo?: boolean;
   wishId?: string;
   version?: number;
+  draftKey?: string;
+  comments?: { id: string; author: Person; body: string; createdAt: string }[];
+  likes?: Person[];
+  unreadComments?: number;
 };
+export type Album = { id: string; name: string; images: string[] };
+export type MoodEntry = {
+  id: string;
+  date: string;
+  author: Person;
+  mood: string;
+  note: string;
+  version: number;
+};
+export const MOODS = [
+  "开心",
+  "平静",
+  "期待",
+  "感动",
+  "想你",
+  "疲惫",
+  "难过",
+  "焦虑",
+  "生气",
+  "低落",
+] as const;
 export type Wish = {
   id: string;
   title: string;
@@ -20,6 +45,22 @@ export type Wish = {
   memoryId?: string;
   demo?: boolean;
   version?: number;
+};
+export type Anniversary = {
+  id: string;
+  name: string;
+  date: string;
+  yearly: boolean;
+  version: number;
+};
+export type LetterSummary = {
+  id: string;
+  author: Person;
+  recipient: Person;
+  title: string | null;
+  unlockDate: string;
+  createdAt: string;
+  locked: boolean;
 };
 export type Settings = {
   startDate: string;
@@ -40,6 +81,10 @@ export type AppData = {
   settings: Settings;
   memories: Memory[];
   wishes: Wish[];
+  albums: Album[];
+  moods: MoodEntry[];
+  anniversaries: Anniversary[];
+  letters: LetterSummary[];
   storageReady: boolean;
 };
 export const PEOPLE = {

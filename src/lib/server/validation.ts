@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { today } from "@/lib/dates";
+import { MOODS } from "@/lib/types";
 const date = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "请选择有效日期。")
@@ -12,6 +13,9 @@ const date = z
       value <= today()
     );
   }, "日期不正确或晚于今天。");
+const calendarDate = z.iso
+  .date()
+  .refine((value) => value >= "1900-01-01" && value <= "2100-12-31", "请选择有效日期。");
 export const image = z
   .string()
   .max(255)
@@ -26,6 +30,7 @@ export const memoryInput = z.object({
   body: z.string().trim().max(5000),
   date,
   images: z.array(image).max(3),
+  draftKey: z.string().max(64).optional(),
 });
 export const memoryUpdate = memoryInput.extend({ version: z.number().int().positive() });
 const lunarBirthday = z
@@ -58,3 +63,33 @@ export const recordInput = z.object({
   images: z.array(image).max(3),
 });
 export const versionInput = z.object({ version: z.number().int().positive() });
+
+export const commentInput = z.object({ body: z.string().trim().min(1).max(500) });
+export const reactionInput = z.object({ liked: z.boolean() });
+export const albumInput = z.object({ name: z.string().trim().min(1).max(60) });
+export const albumImageInput = z.object({ image });
+export const moodInput = z.object({
+  date,
+  mood: z.enum(MOODS),
+  note: z.string().trim().max(500),
+  version: z.number().int().positive().optional(),
+});
+export const draftInput = z.object({
+  title: z.string().max(60),
+  body: z.string().max(5000),
+  date: z.union([date, z.literal("")]),
+  images: z.array(image).max(3),
+});
+
+export const anniversaryInput = z.object({
+  name: z.string().trim().min(1).max(60),
+  date: calendarDate,
+  yearly: z.boolean(),
+  version: z.number().int().positive().optional(),
+});
+export const letterInput = z.object({
+  title: z.string().trim().min(1).max(80),
+  body: z.string().trim().min(1).max(10000),
+  unlockDate: calendarDate.refine((value) => value > today(), "请选择明天或之后的开启日期。"),
+  images: z.array(z.string().regex(/^\/api\/photos\/[a-f0-9-]{36}$/)).max(3),
+});

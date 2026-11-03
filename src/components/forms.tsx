@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
-import { ArrowUpRight, CalendarDays, Check, ImagePlus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowUpRight, CalendarDays, Check, Heart, ImagePlus, Trash2 } from "lucide-react";
 import { Modal, PhotoPicker } from "@/components/ui";
 import { useStore, type Memory, type Settings, type Wish } from "@/lib/store";
 import { readableDate, today } from "@/lib/dates";
@@ -168,73 +168,262 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+type DraftValue = {
+  title: string;
+  body: string;
+  date: string;
+  images: string[];
+  updatedAt: string;
+};
 export function MemoryForm({ memory, onClose }: { memory?: Memory; onClose: () => void }) {
   const { data, saveMemory, notify, ready, saving } = useStore();
   const [title, setTitle] = useState(memory?.title || "");
   const [body, setBody] = useState(memory?.body || "");
-  const [photoBusy, setPhotoBusy] = useState(false);
+  const [date, setDate] = useState(memory?.date || today());
   const [images, setImages] = useState<string[]>(memory?.images || []);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [status, setStatus] = useState("");
+  const [settling, setSettling] = useState(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const key = memory?.id || "new";
+  const storageKey = `xin-and-yi:draft:${data.person}:${key}`;
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submitting = useRef(false);
+  const latest = useRef<DraftValue>({
+    title,
+    body,
+    date,
+    images,
+    updatedAt: new Date().toISOString(),
+  });
+  const enqueue = (value: DraftValue) => {
+    queue.current = queue.current.then(async () => {
+      try {
+        const response = await fetch(`/api/drafts/${key}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(value),
+        });
+        if (!response.ok) throw new Error();
+        try {
+          const local = JSON.parse(localStorage.getItem(storageKey) || "null");
+          if (local?.updatedAt === value.updatedAt) localStorage.removeItem(storageKey);
+        } catch {}
+        if (latest.current.updatedAt === value.updatedAt) setStatus("草稿已保存");
+      } catch {
+        if (latest.current.updatedAt === value.updatedAt) {
+          let localSaved = false;
+          try {
+            localSaved = !!localStorage.getItem(storageKey);
+          } catch {}
+          setStatus(
+            localSaved ? "草稿已保存在本机，云端同步失败" : "草稿保存失败，请保持页面并检查连接",
+          );
+        }
+      }
+    });
+    return queue.current;
+  };
+  useEffect(() => {
+    let active = true;
+    async function restore() {
+      let local: DraftValue | null = null,
+        remote: DraftValue | null = null;
+      try {
+        local = JSON.parse(localStorage.getItem(storageKey) || "null");
+      } catch {}
+      try {
+        const response = await fetch(`/api/drafts/${key}`, { cache: "no-store" });
+        if (!response.ok) throw new Error();
+        remote = await response.json();
+      } catch {
+        if (active) setStatus("云端草稿暂不可用");
+      }
+      if (!active) return;
+      const draft = local || remote;
+      if (
+        draft &&
+        typeof draft.title === "string" &&
+        typeof draft.body === "string" &&
+        typeof draft.date === "string" &&
+        Array.isArray(draft.images)
+      ) {
+        setTitle(draft.title);
+        setBody(draft.body);
+        setDate(draft.date);
+        setImages(draft.images);
+        setStatus("已恢复草稿");
+        setDirty(true);
+      }
+      setLoaded(true);
+    }
+    void restore();
+    return () => {
+      active = false;
+    };
+  }, [key, storageKey]);
+  useEffect(() => {
+    if (!loaded || !dirty || submitting.current) return;
+    const value = { title, body, date, images, updatedAt: new Date().toISOString() };
+    latest.current = value;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(value));
+    } catch {
+      setStatus("无法保存本机草稿，正在尝试云端同步");
+    }
+    setStatus("正在保存草稿…");
+    timer.current = setTimeout(() => void enqueue(value), 700);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [title, body, date, images, dirty, loaded, storageKey]);
+  useEffect(
+    () => () => {
+      if (!submitting.current && loaded && dirty) void enqueue(latest.current);
+    },
+    [loaded, dirty],
+  );
   return (
-    <Modal open onClose={onClose} title={memory ? "编辑手记" : "新建手记"} subtitle="记录这一天。">
+    <Modal
+      open
+      onClose={() => {
+        if (!settling) onClose();
+      }}
+      title={memory ? "编辑手记" : "新建手记"}
+      subtitle="记录这一天。"
+    >
       <form
         onSubmit={async (e) => {
           e.preventDefault();
-          if (!title.trim()) return;
+          if (!title.trim() || !loaded) return;
+          submitting.current = true;
+          setSettling(true);
+          if (timer.current) clearTimeout(timer.current);
+          await queue.current;
           const item: Memory = {
             id: memory?.id || crypto.randomUUID(),
             title: title.trim(),
             body: body.trim(),
-            date: String(new FormData(e.currentTarget).get("date") || today()),
+            date,
             author: memory?.author || data.person,
             images,
             wishId: memory?.wishId,
             version: memory?.version,
+            draftKey: key,
           };
           if (await saveMemory(item)) {
+            try {
+              localStorage.removeItem(storageKey);
+            } catch {}
             notify(memory ? "手记已更新。" : "手记已保存。");
             onClose();
+          } else {
+            submitting.current = false;
+            setSettling(false);
+            if (dirty) void enqueue(latest.current);
           }
         }}
       >
-        <label className="field">
-          标题
-          <input
-            autoFocus
-            required
-            maxLength={60}
-            placeholder="给这篇手记起个名字"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className="field">
-          日期
-          <input
-            type="date"
-            required
-            min="1900-01-01"
-            max={today()}
-            name="date"
-            defaultValue={memory?.date || today()}
-          />
-        </label>
-        <label className="field">
-          正文
-          <textarea
-            rows={4}
-            maxLength={5000}
-            placeholder="写下想记住的事…"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-          />
-        </label>
-        <div className="field">
-          <span>照片</span>
-          <PhotoPicker images={images} onChange={setImages} onBusyChange={setPhotoBusy} />
-        </div>
+        <fieldset className="draft-fields" disabled={!loaded || settling}>
+          <label className="field">
+            标题
+            <input
+              autoFocus
+              required
+              maxLength={60}
+              placeholder="给这篇手记起个名字"
+              value={title}
+              onChange={(e) => {
+                setDirty(true);
+                setTitle(e.target.value);
+              }}
+            />
+          </label>
+          <label className="field">
+            日期
+            <input
+              type="date"
+              required
+              min="1900-01-01"
+              max={today()}
+              name="date"
+              value={date}
+              onChange={(e) => {
+                setDirty(true);
+                setDate(e.target.value);
+              }}
+            />
+          </label>
+          <label className="field">
+            正文
+            <textarea
+              rows={4}
+              maxLength={5000}
+              placeholder="写下想记住的事…"
+              value={body}
+              onChange={(e) => {
+                setDirty(true);
+                setBody(e.target.value);
+              }}
+            />
+          </label>
+          <div className="field">
+            <span>照片</span>
+            <PhotoPicker
+              images={images}
+              onChange={(next) => {
+                setDirty(true);
+                setImages(next);
+              }}
+              onBusyChange={setPhotoBusy}
+            />
+          </div>
+        </fieldset>
+        <p className="field-hint" role="status">
+          {!loaded ? "正在读取草稿…" : status}
+        </p>
         <div className="form-actions">
-          <span className="small muted">记录人 · {data.person}</span>
-          <button className="button button-primary" disabled={!ready || saving || photoBusy}>
+          {dirty ? (
+            <button
+              type="button"
+              className="text-button muted"
+              disabled={settling || saving}
+              onClick={async () => {
+                if (!confirmDiscard) {
+                  setConfirmDiscard(true);
+                  return;
+                }
+                submitting.current = true;
+                setSettling(true);
+                if (timer.current) clearTimeout(timer.current);
+                await queue.current;
+                try {
+                  const response = await fetch(`/api/drafts/${key}`, { method: "DELETE" });
+                  if (!response.ok) throw new Error();
+                  try {
+                    localStorage.removeItem(storageKey);
+                  } catch {}
+                  notify("草稿已丢弃。");
+                  onClose();
+                } catch {
+                  submitting.current = false;
+                  setSettling(false);
+                  notify("草稿暂时无法丢弃，请重试。");
+                }
+              }}
+            >
+              {confirmDiscard ? "确认丢弃草稿" : "丢弃草稿"}
+            </button>
+          ) : (
+            <span className="small muted">记录人 · {data.person}</span>
+          )}
+          <button
+            className="button button-primary"
+            disabled={!ready || !loaded || saving || photoBusy || settling}
+          >
             <ImagePlus size={16} />
             {memory ? "保存修改" : "保存手记"}
           </button>
@@ -248,14 +437,21 @@ export function MemoryDetail({
   memory,
   onClose,
   onEdit,
+  initialImage,
 }: {
   memory: Memory;
   onClose: () => void;
   onEdit: () => void;
+  initialImage?: string;
 }) {
-  const { data, deleteMemory, notify, saving } = useStore();
+  const { data, deleteMemory, notify, saving, addComment, deleteComment, setLike, markRead } =
+    useStore();
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [selected, setSelected] = useState(0);
+  const [comment, setComment] = useState("");
+  const [selected, setSelected] = useState(Math.max(0, memory.images.indexOf(initialImage || "")));
+  useEffect(() => {
+    if (memory.unreadComments) void markRead(memory.id);
+  }, [memory.id]);
   return (
     <Modal open onClose={onClose} title={memory.title} wide>
       <div className="detail-meta">
@@ -288,6 +484,65 @@ export function MemoryDetail({
         </div>
       )}
       <p className="detail-body">{memory.body || "暂无正文。"}</p>
+      <div className="memory-interaction">
+        <button
+          type="button"
+          className="text-button"
+          disabled={saving}
+          aria-pressed={(memory.likes || []).includes(data.person)}
+          onClick={() => void setLike(memory.id, !(memory.likes || []).includes(data.person))}
+        >
+          <Heart
+            size={16}
+            fill={(memory.likes || []).includes(data.person) ? "currentColor" : "none"}
+          />{" "}
+          {(memory.likes || []).includes(data.person) ? "已赞" : "点赞"} ·{" "}
+          {(memory.likes || []).length}
+        </button>
+        <h3>
+          留言 <span className="muted">{(memory.comments || []).length}</span>
+        </h3>
+        {(memory.comments || []).map((item) => (
+          <div className="comment-item" key={item.id}>
+            <span className="avatar avatar-small">{item.author}</span>
+            <div>
+              <strong>{item.author}</strong>
+              <p>{item.body}</p>
+            </div>
+            {item.author === data.person && (
+              <button
+                type="button"
+                className="text-button muted"
+                disabled={saving}
+                onClick={() => void deleteComment(memory.id, item.id)}
+              >
+                删除
+              </button>
+            )}
+          </div>
+        ))}
+        <form
+          className="comment-form"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (comment.trim() && (await addComment(memory.id, comment.trim()))) setComment("");
+          }}
+        >
+          <label className="sr-only" htmlFor="memory-comment">
+            写留言
+          </label>
+          <input
+            id="memory-comment"
+            value={comment}
+            maxLength={500}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="写一条留言"
+          />
+          <button className="button button-secondary" disabled={saving || !comment.trim()}>
+            发送
+          </button>
+        </form>
+      </div>
       {data.person === memory.author && (
         <div className="detail-actions">
           {confirmDelete ? (

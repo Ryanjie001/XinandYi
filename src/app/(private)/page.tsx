@@ -5,6 +5,8 @@ import { ArrowRight, ArrowUpRight, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { MemoryCard } from "@/components/memory-card";
 import { MemoryDetail, MemoryForm, SettingsDialog } from "@/components/forms";
+import { MoodBoard } from "@/components/mood-board";
+import { AnniversaryDialog } from "@/components/anniversaries";
 import { useStore, type Memory } from "@/lib/store";
 import {
   nextOccurrence,
@@ -12,16 +14,25 @@ import {
   readableDate,
   readableLunarDate,
   togetherDays,
+  anniversaryRemaining,
+  isOnThisDay,
+  today,
 } from "@/lib/dates";
 
 export default function HomePage() {
   const { data, ready } = useStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [anniversariesOpen, setAnniversariesOpen] = useState(false);
   const [editor, setEditor] = useState<Memory | "new" | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const days = togetherDays(data.settings.startDate);
   const memories = [...data.memories].sort((a, b) => b.date.localeCompare(a.date));
   const completed = data.wishes.filter((w) => w.completedAt).length;
+  const currentDate = today();
+  const onThisDay = memories.filter((memory) => isOnThisDay(memory.date, currentDate));
+  const reminders = data.anniversaries
+    .map((item) => ({ ...item, remaining: anniversaryRemaining(item.date, item.yearly) }))
+    .filter((item) => item.remaining !== null && item.remaining >= 0 && item.remaining <= 7);
   const birthday = (
     name: string,
     solar: string,
@@ -58,10 +69,16 @@ export default function HomePage() {
       data.settings.yiLunarLeap,
       data.settings.yiBirthdayCalendar,
     ),
+    ...data.anniversaries.map((item) => ({
+      name: item.name,
+      date: item.date,
+      display: readableDate(item.date, true) + (item.yearly ? " · 每年" : " · 一次"),
+      remaining: anniversaryRemaining(item.date, item.yearly),
+    })),
   ]
     .filter(
       (item): item is typeof item & { remaining: number } =>
-        Boolean(item.date) && item.remaining !== null,
+        Boolean(item.date) && item.remaining !== null && item.remaining >= 0,
     )
     .sort((a, b) => a.remaining - b.remaining);
   const detail = data.memories.find((m) => m.id === detailId);
@@ -161,6 +178,31 @@ export default function HomePage() {
           </strong>
         </button>
       </section>
+      {reminders.length > 0 && (
+        <div className="anniversary-reminder" role="status">
+          纪念日提醒：
+          {reminders
+            .map(
+              (item) =>
+                `${item.name}${item.remaining === 0 ? "是今天" : `还有 ${item.remaining} 天`}`,
+            )
+            .join("；")}
+        </div>
+      )}
+      <MoodBoard />
+      {onThisDay.length > 0 && (
+        <section className="home-memories on-this-day">
+          <div className="section-heading">
+            <h2>那年今日</h2>
+            <span className="muted small">往年今天的手记</span>
+          </div>
+          <div className="memory-grid">
+            {onThisDay.map((memory) => (
+              <MemoryCard key={memory.id} memory={memory} onClick={() => setDetailId(memory.id)} />
+            ))}
+          </div>
+        </section>
+      )}
       <section className="home-memories">
         <div className="section-heading">
           <h2>最近的手记</h2>
@@ -213,15 +255,23 @@ export default function HomePage() {
         <div className="anniversary-card">
           <div className="section-heading">
             <h2>特别的日子</h2>
+            <button
+              className="text-button"
+              disabled={!ready}
+              onClick={() => setAnniversariesOpen(true)}
+            >
+              添加纪念日
+              <Plus size={14} />
+            </button>
             <button className="text-button" disabled={!ready} onClick={() => setSettingsOpen(true)}>
-              管理
+              管理生日
               <ArrowUpRight size={16} />
             </button>
           </div>
           {upcoming.length ? (
             <div className="anniversary-list">
-              {upcoming.map((item) => (
-                <div key={item.name}>
+              {upcoming.map((item, index) => (
+                <div key={`${item.name}-${item.date}-${index}`}>
                   <div>
                     <strong>{item.name}</strong>
                     <span>{item.display}</span>
@@ -248,6 +298,7 @@ export default function HomePage() {
         </div>
       </section>
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
+      {anniversariesOpen && <AnniversaryDialog onClose={() => setAnniversariesOpen(false)} />}
       {editor && (
         <MemoryForm
           memory={editor === "new" ? undefined : editor}

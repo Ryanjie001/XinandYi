@@ -25,6 +25,13 @@ npm run dev
 - 两个固定密码账号，关闭公开注册；安全会话、登录限流、退出、修改密码并退出其他设备。
 - 首页恋爱天数与纪念日、共享设置、手记发布/编辑/删除/搜索/筛选、愿望清单及完成后生成手记。双方可分别保存阳历和农历生日，并选择首页展示及倒计时使用的一种。
 - 手记作者由服务器确认，只有作者可以修改和删除；愿望与纪念日由两人共同管理。
+- 手记支持双方点赞、留言和站内未读提示；留言只能由发布者删除。
+- 独立相册集中展示手记和首页照片，可创建、重命名、删除相册，以及添加或移出照片；移出相册不会删除原照片。
+- 手记草稿按账号保存，编辑时自动同步到开发库，并在本机保留尚未同步的内容；草稿照片被引用保护。
+- 每人每天可选择心情并写简短记录，双方登录后可以查看；修改时检查版本冲突。
+- 自定义纪念日使用阳历，可选择单次或每年重复；临近七天在首页提示，2 月 29 日在平年按 2 月 28 日计算。
+- 首页在有往年同月同日的手记时显示“那年今日”。
+- 未来信件发给对方，支持附照片；收信人只能在开启日的北京时间 00:00 起查看内容和照片，写信人可提前查看自己写的信。
 - MySQL 8.4 + Prisma 7 迁移与持久化，版本冲突提示，愿望生成手记使用事务与唯一约束。
 - 腾讯云 COS 私有照片上传，服务器校验、压缩、方向纠正与去除 EXIF；照片访问需要登录，签名仅有效 60 秒。
 - 旧浏览器记录可手动导入、下载原始备份；原 localStorage 不被覆盖或删除。导入不包含示例，重复导入不产生重复记录；云端已有设置优先保留。
@@ -40,6 +47,9 @@ npm run dev
 npm run typecheck
 npm run build
 npm run test:integration
+node scripts/test-new-features.mjs
+npx tsx scripts/test-anniversary-dates.mts
+node scripts/test-future-features.mjs
 npx tsx scripts/test-birthdays.mts
 node scripts/test-birthday-api.mjs
 npm run photos:cleanup
@@ -62,4 +72,4 @@ npm run photos:cleanup
 
 ## 下一阶段
 
-ICP备案仍在审核，正式网站已暂停公网内容访问，域名和 HTTPS 配置已保留。后续优化在开发环境进行；正式库与开发库隔离。恢复和备份说明见 docs/DEPLOYMENT.md。
+ICP备案完成后，正式网站已恢复访问：[https://example.com](https://example.com)。后续优化在开发环境进行；正式库与开发库隔离。部署和备份说明见 docs/DEPLOYMENT.md。

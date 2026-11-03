@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import type { AppData, Memory, Person, Settings, Wish } from "./types";
+import type { AppData, Memory, Person, Settings, Wish, MoodEntry, Anniversary } from "./types";
 export type { Memory, Person, Settings, Wish } from "./types";
 const empty: AppData = {
   version: 1,
@@ -20,6 +20,10 @@ const empty: AppData = {
   },
   memories: [],
   wishes: [],
+  albums: [],
+  moods: [],
+  anniversaries: [],
+  letters: [],
   storageReady: false,
 };
 const STORAGE_KEY = "xin-and-yi:preview:v1";
@@ -48,6 +52,35 @@ type Store = {
   deleteWish: (id: string) => Promise<boolean>;
   toggleWish: (id: string) => Promise<boolean>;
   recordWish: (id: string, note: string, images: string[]) => Promise<boolean>;
+  addComment: (id: string, body: string) => Promise<boolean>;
+  deleteComment: (id: string, commentId: string) => Promise<boolean>;
+  setLike: (id: string, liked: boolean) => Promise<boolean>;
+  markRead: (id: string) => Promise<boolean>;
+  createAlbum: (name: string) => Promise<boolean>;
+  renameAlbum: (id: string, name: string) => Promise<boolean>;
+  deleteAlbum: (id: string) => Promise<boolean>;
+  setAlbumImage: (id: string, image: string, add: boolean) => Promise<boolean>;
+  saveMood: (
+    value:
+      | Pick<MoodEntry, "date" | "mood" | "note" | "version">
+      | { date: string; mood: string; note: string },
+  ) => Promise<boolean>;
+  deleteMood: (id: string) => Promise<boolean>;
+  saveAnniversary: (value: {
+    id?: string;
+    name: string;
+    date: string;
+    yearly: boolean;
+    version?: number;
+  }) => Promise<boolean>;
+  deleteAnniversary: (id: string, version: number) => Promise<boolean>;
+  sendLetter: (value: {
+    title: string;
+    body: string;
+    unlockDate: string;
+    images: string[];
+  }) => Promise<boolean>;
+  deleteLetter: (id: string) => Promise<boolean>;
   importLegacy: () => Promise<boolean>;
   exportLegacy: () => void;
   dismissLegacy: () => void;
@@ -203,6 +236,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         body: v.body,
         date: v.date,
         images: v.images,
+        ...(v.draftKey ? { draftKey: v.draftKey } : {}),
         ...(old ? { version: v.version } : {}),
       });
     },
@@ -226,6 +260,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }),
     recordWish: (id, note, images) =>
       mutate("/api/data/wishes/" + id + "/record", "POST", { note, images }),
+    addComment: (id, text) => mutate(`/api/data/memories/${id}/comments`, "POST", { body: text }),
+    deleteComment: (id, commentId) =>
+      mutate(`/api/data/memories/${id}/comments/${commentId}`, "DELETE", {}),
+    setLike: (id, liked) => mutate(`/api/data/memories/${id}/reaction`, "PUT", { liked }),
+    markRead: (id) => mutate(`/api/data/memories/${id}/read`, "POST", {}),
+    createAlbum: (name) => mutate("/api/data/albums", "POST", { name }),
+    renameAlbum: (id, name) => mutate(`/api/data/albums/${id}`, "PATCH", { name }),
+    deleteAlbum: (id) => mutate(`/api/data/albums/${id}`, "DELETE", {}),
+    setAlbumImage: (id, image, add) =>
+      mutate(`/api/data/albums/${id}/images`, add ? "PUT" : "DELETE", { image }),
+    saveMood: (value) => mutate("/api/data/moods", "PUT", value),
+    deleteMood: (id) => mutate(`/api/data/moods/${id}`, "DELETE", {}),
+    saveAnniversary: ({ id, ...value }) =>
+      mutate(`/api/data/anniversaries${id ? "/" + id : ""}`, id ? "PATCH" : "POST", value),
+    deleteAnniversary: (id, version) =>
+      mutate(`/api/data/anniversaries/${id}`, "DELETE", { version }),
+    sendLetter: (value) => mutate("/api/data/letters", "POST", value),
+    deleteLetter: (id) => mutate(`/api/data/letters/${id}`, "DELETE", {}),
     dismissLegacy: () => {
       legacyDismissed.current = true;
       setLegacy(false);

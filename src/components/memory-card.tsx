@@ -34,7 +34,12 @@ export function MemoryCard({
       <div className="memory-card-body">
         <div className="memory-date">
           <span>{readableDate(memory.date)}</span>
-          <span>{memory.author} 记录</span>
+          <span>
+            {memory.author} 记录
+            {(memory.unreadComments || 0) > 0 && (
+              <span className="unread-label"> · {memory.unreadComments} 条新留言</span>
+            )}
+          </span>
         </div>
         <h3>{memory.title}</h3>
         <p>{memory.body || "暂无正文。"}</p>

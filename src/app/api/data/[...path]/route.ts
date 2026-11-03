@@ -7,6 +7,20 @@ import {
   createWish,
   changeWish,
   recordWish,
+  commentMemory,
+  deleteComment,
+  reactMemory,
+  readMemory,
+  createAlbum,
+  renameAlbum,
+  deleteAlbum,
+  changeAlbumImage,
+  saveMood,
+  deleteMood,
+  saveAnniversary,
+  deleteAnniversary,
+  sendLetter,
+  deleteLetter,
 } from "@/lib/server/data";
 import {
   memoryInput,
@@ -16,6 +30,13 @@ import {
   wishUpdate,
   recordInput,
   versionInput,
+  commentInput,
+  reactionInput,
+  albumInput,
+  albumImageInput,
+  moodInput,
+  anniversaryInput,
+  letterInput,
 } from "@/lib/server/validation";
 export const runtime = "nodejs";
 function handle(request: Request, { params }: { params: Promise<{ path: string[] }> }) {
@@ -25,8 +46,73 @@ function handle(request: Request, { params }: { params: Promise<{ path: string[]
     const path = (await params).path,
       [resource, id, action] = path,
       method = request.method;
-    if (path.length > 3) throw new HttpError(404, "接口不存在。");
-    if (resource === "settings" && path.length === 1 && method === "PATCH")
+    if (path.length > 4) throw new HttpError(404, "接口不存在。");
+    if (resource === "anniversaries" && path.length === 1 && method === "POST")
+      await saveAnniversary(await body(request, anniversaryInput));
+    else if (resource === "anniversaries" && id && path.length === 2 && method === "PATCH")
+      await saveAnniversary(await body(request, anniversaryInput), id);
+    else if (resource === "anniversaries" && id && path.length === 2 && method === "DELETE")
+      await deleteAnniversary(id, (await body(request, versionInput)).version);
+    else if (resource === "letters" && path.length === 1 && method === "POST")
+      await sendLetter(await body(request, letterInput), user);
+    else if (resource === "letters" && id && path.length === 2 && method === "DELETE")
+      await deleteLetter(id, user);
+    else if (
+      resource === "memories" &&
+      id &&
+      action === "comments" &&
+      path.length === 3 &&
+      method === "POST"
+    )
+      await commentMemory(id, (await body(request, commentInput)).body, user);
+    else if (
+      resource === "memories" &&
+      id &&
+      action === "comments" &&
+      path.length === 4 &&
+      method === "DELETE"
+    )
+      await deleteComment(id, path[3], user);
+    else if (
+      resource === "memories" &&
+      id &&
+      action === "reaction" &&
+      path.length === 3 &&
+      method === "PUT"
+    )
+      await reactMemory(id, (await body(request, reactionInput)).liked, user);
+    else if (
+      resource === "memories" &&
+      id &&
+      action === "read" &&
+      path.length === 3 &&
+      method === "POST"
+    )
+      await readMemory(id, user);
+    else if (resource === "albums" && path.length === 1 && method === "POST")
+      await createAlbum((await body(request, albumInput)).name);
+    else if (resource === "albums" && id && path.length === 2 && method === "PATCH")
+      await renameAlbum(id, (await body(request, albumInput)).name);
+    else if (resource === "albums" && id && path.length === 2 && method === "DELETE")
+      await deleteAlbum(id);
+    else if (
+      resource === "albums" &&
+      id &&
+      action === "images" &&
+      path.length === 3 &&
+      (method === "PUT" || method === "DELETE")
+    )
+      await changeAlbumImage(
+        id,
+        (await body(request, albumImageInput)).image,
+        user,
+        method === "PUT",
+      );
+    else if (resource === "moods" && path.length === 1 && method === "PUT")
+      await saveMood(await body(request, moodInput), user);
+    else if (resource === "moods" && id && path.length === 2 && method === "DELETE")
+      await deleteMood(id, user);
+    else if (resource === "settings" && path.length === 1 && method === "PATCH")
       await changeSettings(await body(request, settingsInput), user);
     else if (resource === "memories" && path.length === 1 && method === "POST")
       await createMemory(await body(request, memoryInput), user);
@@ -46,6 +132,7 @@ function handle(request: Request, { params }: { params: Promise<{ path: string[]
     return json(await state(user));
   });
 }
+export const PUT = handle;
 export const POST = handle;
 export const PATCH = handle;
 export const DELETE = handle;
