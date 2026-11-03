@@ -63,6 +63,73 @@ function MoodEditor({ date, existing }: { date: string; existing?: MoodEntry }) 
   );
 }
 
+function MoodComments({ item }: { item: MoodEntry }) {
+  const { data, saving, addMoodComment, deleteMoodComment } = useStore();
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  return (
+    <div className="mood-comments">
+      <button
+        type="button"
+        className="text-button mood-comment-toggle"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+      >
+        评论 {item.comments.length > 0 && item.comments.length}
+      </button>
+      {open && (
+        <div className="mood-comment-panel">
+          {item.comments.map((comment) => (
+            <div className="mood-comment" key={comment.id}>
+              <span>
+                <strong>{comment.author}</strong>：{comment.body}
+              </span>
+              {comment.author === data.person && (
+                <button
+                  type="button"
+                  className="text-button muted"
+                  disabled={saving}
+                  onClick={async () => {
+                    if (confirmDelete !== comment.id) {
+                      setConfirmDelete(comment.id);
+                      return;
+                    }
+                    if (await deleteMoodComment(item.id, comment.id)) setConfirmDelete(null);
+                  }}
+                >
+                  {confirmDelete === comment.id ? "确认删除" : "删除"}
+                </button>
+              )}
+            </div>
+          ))}
+          <form
+            className="mood-comment-form"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (text.trim() && (await addMoodComment(item.id, text.trim()))) setText("");
+            }}
+          >
+            <label className="sr-only" htmlFor={`mood-comment-${item.id}`}>
+              写评论
+            </label>
+            <input
+              id={`mood-comment-${item.id}`}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+              maxLength={500}
+              placeholder="写下你的评论"
+            />
+            <button className="button button-secondary" disabled={saving || !text.trim()}>
+              发送
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MoodBoard() {
   const { data, ready, saving, deleteMood, notify } = useStore();
   const [date, setDate] = useState(today());
@@ -107,6 +174,7 @@ export function MoodBoard() {
                 · {readableDate(item.date, true)} · {item.author}
               </span>
               {item.note && <p>{item.note}</p>}
+              <MoodComments item={item} />
             </div>
             {item.author === data.person && (
               <button

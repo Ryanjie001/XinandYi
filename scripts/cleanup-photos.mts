@@ -19,12 +19,13 @@ let candidates = 0,
 try {
   const photos = await db.photo.findMany({
     where: {
-      createdAt: { lt: cutoff },
+      OR: [{ status: "deleting" }, { status: "ready", createdAt: { lt: cutoff } }],
       memories: { none: {} },
       covers: { none: {} },
       albumItems: { none: {} },
       draftPhotos: { none: {} },
       letterPhotos: { none: {} },
+      gallery: { is: null },
     },
     take: 50,
     orderBy: { createdAt: "asc" },
@@ -43,6 +44,7 @@ try {
       const current = await tx.photo.findUnique({
         where: { id: p.id },
         include: {
+          gallery: true,
           _count: {
             select: {
               memories: true,
@@ -60,7 +62,8 @@ try {
         current._count.covers ||
         current._count.albumItems ||
         current._count.draftPhotos ||
-        current._count.letterPhotos
+        current._count.letterPhotos ||
+        current.gallery
       )
         return false;
       await tx.photo.update({ where: { id: p.id }, data: { status: "deleting" } });

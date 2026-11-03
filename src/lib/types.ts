@@ -22,6 +22,7 @@ export type MoodEntry = {
   mood: string;
   note: string;
   version: number;
+  comments: { id: string; author: Person; body: string; createdAt: string }[];
 };
 export const MOODS = [
   "开心",
@@ -82,6 +83,7 @@ export type AppData = {
   memories: Memory[];
   wishes: Wish[];
   albums: Album[];
+  gallery: { image: string; createdAt: string }[];
   moods: MoodEntry[];
   anniversaries: Anniversary[];
   letters: LetterSummary[];

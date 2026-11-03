@@ -1,3 +1,4 @@
+import { deleteSharedPhoto } from "@/lib/server/photo-deletion";
 import { actor, mutationOrigin, body, route, json, HttpError } from "@/lib/server/http";
 import {
   state,
@@ -15,6 +16,9 @@ import {
   renameAlbum,
   deleteAlbum,
   changeAlbumImage,
+  addGalleryPhoto,
+  addMoodComment,
+  deleteMoodComment,
   saveMood,
   deleteMood,
   saveAnniversary,
@@ -34,6 +38,8 @@ import {
   reactionInput,
   albumInput,
   albumImageInput,
+  galleryInput,
+  photoDeletionInput,
   moodInput,
   anniversaryInput,
   letterInput,
@@ -46,6 +52,7 @@ function handle(request: Request, { params }: { params: Promise<{ path: string[]
     const path = (await params).path,
       [resource, id, action] = path,
       method = request.method;
+    let storagePending = false;
     if (path.length > 4) throw new HttpError(404, "接口不存在。");
     if (resource === "anniversaries" && path.length === 1 && method === "POST")
       await saveAnniversary(await body(request, anniversaryInput));
@@ -108,6 +115,29 @@ function handle(request: Request, { params }: { params: Promise<{ path: string[]
         user,
         method === "PUT",
       );
+    else if (resource === "photos" && id === "delete" && path.length === 2 && method === "POST") {
+      const input = await body(request, photoDeletionInput);
+      storagePending = (await deleteSharedPhoto(input.image, input.fingerprint, user))
+        .storagePending;
+    } else if (resource === "gallery" && path.length === 1 && method === "POST") {
+      const input = await body(request, galleryInput);
+      await addGalleryPhoto(input.image, input.albumId, user);
+    } else if (
+      resource === "moods" &&
+      id &&
+      action === "comments" &&
+      path.length === 3 &&
+      method === "POST"
+    )
+      await addMoodComment(id, (await body(request, commentInput)).body, user);
+    else if (
+      resource === "moods" &&
+      id &&
+      action === "comments" &&
+      path.length === 4 &&
+      method === "DELETE"
+    )
+      await deleteMoodComment(id, path[3], user);
     else if (resource === "moods" && path.length === 1 && method === "PUT")
       await saveMood(await body(request, moodInput), user);
     else if (resource === "moods" && id && path.length === 2 && method === "DELETE")
@@ -129,7 +159,10 @@ function handle(request: Request, { params }: { params: Promise<{ path: string[]
     else if (resource === "wishes" && path.length === 3 && action === "record" && method === "POST")
       await recordWish(id, await body(request, recordInput), user);
     else throw new HttpError(404, "接口不存在。");
-    return json(await state(user));
+    return json({
+      ...(await state(user)),
+      ...(storagePending ? { warning: "照片已从页面移除，存储空间清理待重试。" } : {}),
+    });
   });
 }
 export const PUT = handle;

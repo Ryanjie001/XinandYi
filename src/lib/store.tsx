@@ -21,6 +21,7 @@ const empty: AppData = {
   memories: [],
   wishes: [],
   albums: [],
+  gallery: [],
   moods: [],
   anniversaries: [],
   letters: [],
@@ -60,6 +61,10 @@ type Store = {
   renameAlbum: (id: string, name: string) => Promise<boolean>;
   deleteAlbum: (id: string) => Promise<boolean>;
   setAlbumImage: (id: string, image: string, add: boolean) => Promise<boolean>;
+  addGalleryPhoto: (image: string, albumId?: string) => Promise<boolean>;
+  deleteSharedPhoto: (image: string, fingerprint: string) => Promise<boolean>;
+  addMoodComment: (id: string, text: string) => Promise<boolean>;
+  deleteMoodComment: (id: string, commentId: string) => Promise<boolean>;
   saveMood: (
     value:
       | Pick<MoodEntry, "date" | "mood" | "note" | "version">
@@ -196,6 +201,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setData(value);
       setReady(true);
       setError("");
+      if (value.warning) notify(value.warning);
       return true;
     } catch (e) {
       notify(e instanceof Error ? e.message : "连接中断，请检查列表后重试。");
@@ -270,6 +276,13 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     deleteAlbum: (id) => mutate(`/api/data/albums/${id}`, "DELETE", {}),
     setAlbumImage: (id, image, add) =>
       mutate(`/api/data/albums/${id}/images`, add ? "PUT" : "DELETE", { image }),
+    deleteSharedPhoto: (image, fingerprint) =>
+      mutate("/api/data/photos/delete", "POST", { image, fingerprint }),
+    addGalleryPhoto: (image, albumId) =>
+      mutate("/api/data/gallery", "POST", { image, ...(albumId ? { albumId } : {}) }),
+    addMoodComment: (id, text) => mutate(`/api/data/moods/${id}/comments`, "POST", { body: text }),
+    deleteMoodComment: (id, commentId) =>
+      mutate(`/api/data/moods/${id}/comments/${commentId}`, "DELETE", {}),
     saveMood: (value) => mutate("/api/data/moods", "PUT", value),
     deleteMood: (id) => mutate(`/api/data/moods/${id}`, "DELETE", {}),
     saveAnniversary: ({ id, ...value }) =>

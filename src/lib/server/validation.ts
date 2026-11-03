@@ -68,6 +68,14 @@ export const commentInput = z.object({ body: z.string().trim().min(1).max(500) }
 export const reactionInput = z.object({ liked: z.boolean() });
 export const albumInput = z.object({ name: z.string().trim().min(1).max(60) });
 export const albumImageInput = z.object({ image });
+export const photoDeletionInput = z.object({
+  image,
+  fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export const galleryInput = z.object({
+  image: z.string().regex(/^\/api\/photos\/[a-f0-9-]{36}$/),
+  albumId: z.string().uuid().optional(),
+});
 export const moodInput = z.object({
   date,
   mood: z.enum(MOODS),

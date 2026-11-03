@@ -1,15 +1,52 @@
 "use client";
 import { useMemo, useState } from "react";
-import { Images, Plus } from "lucide-react";
+import { ChevronDown, ImagePlus, Images, Plus } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { MemoryDetail, MemoryForm } from "@/components/forms";
 import { Modal } from "@/components/ui";
+import { preparePhoto } from "@/lib/photos";
 import { useStore, type Memory } from "@/lib/store";
 
 type PhotoEntry = { image: string; memory?: Memory; month: string };
+type DeletionImpact = {
+  image: string;
+  memories: { id: string; title: string }[];
+  albums: { id: string; name: string }[];
+  cover: boolean;
+  draftCount: number;
+  fingerprint: string;
+};
 export default function AlbumsPage() {
-  const { data, ready, saving, notify, createAlbum, renameAlbum, deleteAlbum, setAlbumImage } =
-    useStore();
+  const {
+    data,
+    ready,
+    saving,
+    notify,
+    createAlbum,
+    renameAlbum,
+    deleteAlbum,
+    setAlbumImage,
+    addGalleryPhoto,
+    deleteSharedPhoto,
+  } = useStore();
+  const [uploading, setUploading] = useState(false);
+  const [checkingDelete, setCheckingDelete] = useState(false);
+  const [deleteImpact, setDeleteImpact] = useState<DeletionImpact | null>(null);
+  async function checkDelete(image: string) {
+    setCheckingDelete(true);
+    try {
+      const response = await fetch(`/api/photo-deletion?image=${encodeURIComponent(image)}`, {
+        cache: "no-store",
+      });
+      const value = await response.json();
+      if (!response.ok) throw new Error(value.error || "暂时无法检查照片关联。");
+      setDeleteImpact(value);
+    } catch (error) {
+      notify(error instanceof Error ? error.message : "暂时无法检查照片关联。");
+    } finally {
+      setCheckingDelete(false);
+    }
+  }
   const [selected, setSelected] = useState("all");
   const [target, setTarget] = useState("");
   const [name, setName] = useState("");
@@ -29,11 +66,23 @@ export default function AlbumsPage() {
     }
     if (data.settings.coverImage && !items.has(data.settings.coverImage))
       items.set(data.settings.coverImage, { image: data.settings.coverImage, month: "其他照片" });
+    for (const photo of data.gallery) {
+      if (!items.has(photo.image)) {
+        const month = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Shanghai",
+          year: "numeric",
+          month: "2-digit",
+        })
+          .format(new Date(photo.createdAt))
+          .slice(0, 7);
+        items.set(photo.image, { image: photo.image, month });
+      }
+    }
     for (const group of data.albums)
       for (const image of group.images)
         if (!items.has(image)) items.set(image, { image, month: "其他照片" });
     return [...items.values()];
-  }, [data.memories, data.settings.coverImage, data.albums]);
+  }, [data.memories, data.settings.coverImage, data.albums, data.gallery]);
   const visible = album ? photos.filter((photo) => album.images.includes(photo.image)) : photos;
   const groups = visible.reduce<Record<string, PhotoEntry[]>>((result, photo) => {
     (result[photo.month] ||= []).push(photo);
@@ -48,8 +97,42 @@ export default function AlbumsPage() {
         <div>
           <p className="eyebrow">照片</p>
           <h1>我们的相册</h1>
-          <p className="muted">按手记日期浏览，也可以整理到相册。</p>
+          <p className="muted">记录每一张照片。</p>
         </div>
+        <label className={"button button-primary album-upload" + (uploading ? " is-busy" : "")}>
+          <ImagePlus size={16} /> {uploading ? "上传中…" : "添加照片"}
+          <input
+            className="sr-only"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            multiple
+            disabled={!ready || saving || uploading}
+            onChange={async (event) => {
+              const input = event.currentTarget;
+              const files = Array.from(input.files || []);
+              const albumId = album?.id;
+              if (!files.length) return;
+              setUploading(true);
+              let added = 0;
+              try {
+                for (const file of files) {
+                  const image = await preparePhoto(file);
+                  if (!(await addGalleryPhoto(image, albumId)))
+                    throw new Error("照片保存失败，请重试。");
+                  added++;
+                }
+                notify(`已添加 ${added} 张照片。`);
+              } catch (error) {
+                notify(
+                  `${added ? `已添加 ${added} 张。` : ""}${error instanceof Error ? error.message : "上传失败，请重试。"}`,
+                );
+              } finally {
+                setUploading(false);
+                input.value = "";
+              }
+            }}
+          />
+        </label>
       </div>
       <div className="album-toolbar">
         <div className="album-tabs" aria-label="选择相册">
@@ -167,23 +250,26 @@ export default function AlbumsPage() {
           </button>
         </div>
       )}
-      {!!data.albums.length && (
+      {!!data.albums.length && !album && (
         <label className="album-target">
-          添加到相册{" "}
-          <select value={chosenTarget} onChange={(e) => setTarget(e.target.value)}>
-            {data.albums.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
+          <span>添加到相册</span>
+          <span className="album-select-wrap">
+            <select value={chosenTarget} onChange={(e) => setTarget(e.target.value)}>
+              {data.albums.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={16} aria-hidden="true" />
+          </span>
         </label>
       )}
       {!visible.length && (
         <div className="empty-state">
           <Images size={30} strokeWidth={1.2} />
           <h3>{ready ? "还没有照片" : "正在读取…"}</h3>
-          <p>手记或首页中的照片会显示在这里。</p>
+          <p>上传照片，或从手记和首页整理照片。</p>
         </div>
       )}
       {Object.entries(groups)
@@ -210,7 +296,10 @@ export default function AlbumsPage() {
                     <img src={photo.image} alt={photo.memory?.title || "相册照片"} loading="lazy" />
                   </button>
                   <div className="album-photo-meta">
-                    <span>{photo.memory?.title || "首页照片"}</span>
+                    <span>
+                      {photo.memory?.title ||
+                        (photo.image === data.settings.coverImage ? "首页照片" : "相册照片")}
+                    </span>
                     {album ? (
                       <button
                         type="button"
@@ -221,25 +310,36 @@ export default function AlbumsPage() {
                         移出
                       </button>
                     ) : (
-                      chosenTarget && (
-                        <button
-                          type="button"
-                          className="text-button"
-                          disabled={
-                            saving ||
-                            data.albums
+                      <div className="album-photo-actions">
+                        {chosenTarget && (
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={
+                              saving ||
+                              data.albums
+                                .find((a) => a.id === chosenTarget)
+                                ?.images.includes(photo.image)
+                            }
+                            onClick={() => void setAlbumImage(chosenTarget, photo.image, true)}
+                          >
+                            {data.albums
                               .find((a) => a.id === chosenTarget)
                               ?.images.includes(photo.image)
-                          }
-                          onClick={() => void setAlbumImage(chosenTarget, photo.image, true)}
+                              ? "已添加"
+                              : "添加"}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="text-button danger"
+                          disabled={saving || checkingDelete || uploading}
+                          onClick={() => void checkDelete(photo.image)}
+                          aria-label={`删除照片${photo.memory ? `：${photo.memory.title}` : ""}`}
                         >
-                          {data.albums
-                            .find((a) => a.id === chosenTarget)
-                            ?.images.includes(photo.image)
-                            ? "已添加"
-                            : "添加"}
+                          删除
                         </button>
-                      )
+                      </div>
                     )}
                   </div>
                 </div>
@@ -247,6 +347,53 @@ export default function AlbumsPage() {
             </div>
           </section>
         ))}
+      {deleteImpact && (
+        <Modal open title="删除照片" onClose={() => setDeleteImpact(null)}>
+          <div className="photo-delete-confirm">
+            <p>删除后将无法恢复，并从以下位置移除：</p>
+            <ul>
+              <li>全部照片</li>
+              {deleteImpact.cover && <li>首页封面</li>}
+              {deleteImpact.memories.map((memory) => (
+                <li key={memory.id}>手记：{memory.title}</li>
+              ))}
+              {deleteImpact.albums.map((item) => (
+                <li key={item.id}>相册：{item.name}</li>
+              ))}
+            </ul>
+            {deleteImpact.draftCount > 0 && (
+              <p className="danger">
+                这张照片正在 {deleteImpact.draftCount} 份手记草稿中使用。请先在草稿中移除后再删除。
+              </p>
+            )}
+            <p className="muted small">手记和相册本身会保留。</p>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="button button-quiet"
+                disabled={saving}
+                onClick={() => setDeleteImpact(null)}
+              >
+                取消
+              </button>
+              <button
+                type="button"
+                className="button photo-delete-button"
+                disabled={saving || deleteImpact.draftCount > 0}
+                onClick={async () => {
+                  const image = deleteImpact.image;
+                  if (await deleteSharedPhoto(image, deleteImpact.fingerprint)) {
+                    setDeleteImpact(null);
+                    setView(null);
+                  } else await checkDelete(image);
+                }}
+              >
+                确认删除
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
       {view && detail && (
         <MemoryDetail
           memory={detail}

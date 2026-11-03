@@ -27,6 +27,7 @@ model User {
   reactions     MemoryReaction[]
   reads         MemoryRead[]
   moods         MoodEntry[]
+  moodComments  MoodComment[]
   drafts        MemoryDraft[]
   sentLetters   FutureLetter[] @relation("LetterSender")
   receivedLetters FutureLetter[] @relation("LetterRecipient")
@@ -167,6 +168,7 @@ model Photo {
   status      String           @default("ready") @db.VarChar(16)
   memories    MemoryPhoto[]
   albumItems  AlbumItem[]
+  gallery     GalleryPhoto?
   draftPhotos DraftPhoto[]
   letterPhotos LetterPhoto[]
   covers      CoupleSettings[]
@@ -248,6 +250,24 @@ model AlbumItem {
   @@index([photoId])
   @@map("album_item")
 }
+model GalleryPhoto {
+  photoId String @id @db.VarChar(36)
+  photo Photo @relation(fields: [photoId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  @@map("gallery_photo")
+}
+model MoodComment {
+  id String @id @default(uuid()) @db.VarChar(36)
+  moodId String @db.VarChar(36)
+  authorId String @db.VarChar(191)
+  body String @db.VarChar(500)
+  createdAt DateTime @default(now())
+  mood MoodEntry @relation(fields: [moodId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  @@index([moodId, createdAt])
+  @@index([authorId])
+  @@map("mood_comment")
+}
 model MoodEntry {
   id String @id @default(uuid()) @db.VarChar(36)
   authorId String @db.VarChar(191)
@@ -258,6 +278,7 @@ model MoodEntry {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   author User @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  comments MoodComment[]
   @@unique([authorId, date])
   @@index([date])
   @@map("mood_entry")

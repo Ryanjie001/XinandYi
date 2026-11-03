@@ -6,40 +6,47 @@ import { today } from "@/lib/dates";
 type Tx = Prisma.TransactionClient;
 type Actor = { id: string; person: "新" | "怡" };
 export async function state(user: Actor) {
-  const [settings, memories, wishes, albums, moods, anniversaries, letters] =
-    await database().$transaction([
-      database().coupleSettings.findUniqueOrThrow({ where: { id: "us" } }),
-      database().memory.findMany({
-        orderBy: [{ date: "desc" }, { createdAt: "desc" }],
-        include: {
-          comments: { orderBy: { createdAt: "asc" } },
-          reactions: true,
-          reads: { where: { userId: user.id } },
-        },
-      }),
-      database().wish.findMany({
-        include: { memory: { select: { id: true } } },
-        orderBy: { createdAt: "desc" },
-      }),
-      database().album.findMany({
-        orderBy: { createdAt: "desc" },
-        include: { items: { orderBy: { createdAt: "desc" } } },
-      }),
-      database().moodEntry.findMany({ orderBy: [{ date: "desc" }, { updatedAt: "desc" }] }),
-      database().anniversary.findMany({ orderBy: { createdAt: "desc" } }),
-      database().futureLetter.findMany({
-        where: { OR: [{ authorId: user.id }, { recipientId: user.id }] },
-        select: {
-          id: true,
-          authorId: true,
-          recipientId: true,
-          title: true,
-          unlockDate: true,
-          createdAt: true,
-        },
-        orderBy: { createdAt: "desc" },
-      }),
-    ]);
+  const [settings, memories, wishes, albums, moods, anniversaries, gallery, letters] =
+    await database().$transaction(
+      [
+        database().coupleSettings.findUniqueOrThrow({ where: { id: "us" } }),
+        database().memory.findMany({
+          orderBy: [{ date: "desc" }, { createdAt: "desc" }],
+          include: {
+            comments: { orderBy: { createdAt: "asc" } },
+            reactions: true,
+            reads: { where: { userId: user.id } },
+          },
+        }),
+        database().wish.findMany({
+          include: { memory: { select: { id: true } } },
+          orderBy: { createdAt: "desc" },
+        }),
+        database().album.findMany({
+          orderBy: { createdAt: "desc" },
+          include: { items: { orderBy: { createdAt: "desc" } } },
+        }),
+        database().moodEntry.findMany({
+          orderBy: [{ date: "desc" }, { updatedAt: "desc" }],
+          include: { comments: { orderBy: { createdAt: "asc" } } },
+        }),
+        database().anniversary.findMany({ orderBy: { createdAt: "desc" } }),
+        database().galleryPhoto.findMany({ orderBy: { createdAt: "desc" } }),
+        database().futureLetter.findMany({
+          where: { OR: [{ authorId: user.id }, { recipientId: user.id }] },
+          select: {
+            id: true,
+            authorId: true,
+            recipientId: true,
+            title: true,
+            unlockDate: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        }),
+      ],
+      { maxWait: 10000, timeout: 15000 },
+    );
   return {
     version: 1,
     person: user.person,
@@ -97,6 +104,10 @@ export async function state(user: Actor) {
         locked,
       };
     }),
+    gallery: gallery.map((g) => ({
+      image: `/api/photos/${g.photoId}`,
+      createdAt: g.createdAt.toISOString(),
+    })),
     albums: albums.map((a) => ({ id: a.id, name: a.name, images: a.items.map((i) => i.image) })),
     moods: moods.map((m) => ({
       id: m.id,
@@ -105,6 +116,12 @@ export async function state(user: Actor) {
       mood: m.mood,
       note: m.note,
       version: m.version,
+      comments: m.comments.map((c) => ({
+        id: c.id,
+        author: c.authorId === "xin" ? "新" : "怡",
+        body: c.body,
+        createdAt: c.createdAt.toISOString(),
+      })),
     })),
     wishes: wishes.map((w) => ({
       id: w.id,
@@ -129,13 +146,27 @@ export async function validPhotos(tx: Tx, images: string[], user: Actor) {
     const p = await tx.photo.findUnique({
       where: { id },
       include: {
-        _count: { select: { memories: true, covers: true, albumItems: true, draftPhotos: true } },
+        gallery: true,
+        _count: {
+          select: {
+            memories: true,
+            covers: true,
+            albumItems: true,
+            draftPhotos: true,
+            letterPhotos: true,
+          },
+        },
       },
     });
     if (
       !p ||
       p.status !== "ready" ||
-      (p.ownerId !== user.id && !p._count.memories && !p._count.covers && !p._count.albumItems)
+      p._count.letterPhotos > 0 ||
+      (p.ownerId !== user.id &&
+        !p._count.memories &&
+        !p._count.covers &&
+        !p._count.albumItems &&
+        !p.gallery)
     )
       throw new HttpError(400, "照片不可用，请重新上传。");
   }
@@ -339,6 +370,43 @@ export async function changeAlbumImage(id: string, image: string, user: Actor, a
     } else await tx.albumItem.deleteMany({ where: { albumId: id, image } });
   });
 }
+export async function addGalleryPhoto(image: string, albumId: string | undefined, user: Actor) {
+  await database().$transaction(async (tx) => {
+    const id = image.slice(12);
+    await tx.$queryRaw`SELECT id FROM photo WHERE id = ${id} FOR UPDATE`;
+    const photo = await tx.photo.findUnique({
+      where: { id },
+      include: { _count: { select: { letterPhotos: true } } },
+    });
+    if (
+      !photo ||
+      photo.status !== "ready" ||
+      photo.ownerId !== user.id ||
+      photo._count.letterPhotos
+    )
+      throw new HttpError(400, "照片不可用，请重新上传。 ");
+    if (albumId && !(await tx.album.findUnique({ where: { id: albumId }, select: { id: true } })))
+      throw new HttpError(404, "相册不存在。");
+    await tx.galleryPhoto.upsert({ where: { photoId: id }, create: { photoId: id }, update: {} });
+    if (albumId)
+      await tx.albumItem.upsert({
+        where: { albumId_image: { albumId, image } },
+        create: { albumId, image, photoId: id },
+        update: {},
+      });
+  });
+}
+export async function addMoodComment(id: string, text: string, user: Actor) {
+  if (!(await database().moodEntry.findUnique({ where: { id }, select: { id: true } })))
+    throw new HttpError(404, "心情记录不存在。");
+  await database().moodComment.create({ data: { moodId: id, authorId: user.id, body: text } });
+}
+export async function deleteMoodComment(id: string, commentId: string, user: Actor) {
+  const item = await database().moodComment.findFirst({ where: { id: commentId, moodId: id } });
+  if (!item) throw new HttpError(404, "评论不存在。");
+  if (item.authorId !== user.id) throw new HttpError(403, "只能删除自己的评论。");
+  await database().moodComment.delete({ where: { id: commentId } });
+}
 export async function saveMood(
   input: { date: string; mood: string; note: string; version?: number },
   user: Actor,
@@ -401,6 +469,7 @@ export async function sendLetter(
       const photo = await tx.photo.findUnique({
         where: { id },
         include: {
+          gallery: true,
           _count: {
             select: {
               memories: true,
@@ -416,6 +485,7 @@ export async function sendLetter(
         !photo ||
         photo.status !== "ready" ||
         photo.ownerId !== user.id ||
+        photo.gallery ||
         Object.values(photo._count).some(Boolean)
       )
         throw new HttpError(400, "请为信件重新上传未分享的照片。");
