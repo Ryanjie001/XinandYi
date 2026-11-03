@@ -1,0 +1,11 @@
+[Unit]
+Description=Back up Xin and Yi MySQL databases
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/xinanyi
+ExecStart=/usr/bin/bash /opt/xinanyi/server/backup-mysql.sh
+UMask=0077
+Nice=10

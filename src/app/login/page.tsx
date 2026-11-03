@@ -127,6 +127,9 @@ export default function LoginPage() {
         </div>
         <div className="login-bottom">新 & 怡</div>
       </section>
+      <a className="login-icp" href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+        蜀ICP备2026067306号-1
+      </a>
     </main>
   );
 }

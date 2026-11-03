@@ -1,0 +1,67 @@
+name: xinanyi
+services:
+  mysql:
+    image: "${MYSQL_IMAGE:?Set MYSQL_IMAGE in the server .env file}"
+    pull_policy: never
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql-root
+      MYSQL_INITDB_SKIP_TZINFO: "1"
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+      - ./mysql/conf.d/low-memory.cnf:/etc/mysql/conf.d/zz-xinanyi.cnf:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+    secrets:
+      - mysql-root
+      - mysql-dev-app
+      - mysql-dev-migrate
+      - mysql-prod-app
+      - mysql-prod-migrate
+      - mysql-backup
+      - mysql-clients.cnf
+    mem_limit: 640m
+    mem_reservation: 256m
+    memswap_limit: 1280m
+    cpus: 1.0
+    pids_limit: 256
+    stop_grace_period: 60s
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mysql",
+          "--defaults-file=/run/secrets/mysql-clients.cnf",
+          "--defaults-group-suffix=_root",
+          "--protocol=TCP",
+          "--host=127.0.0.1",
+          "--batch",
+          "--skip-column-names",
+          "--execute=SELECT 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 20
+    logging:
+      driver: local
+      options:
+        max-size: "10m"
+        max-file: "3"
+secrets:
+  mysql-root:
+    file: ./secrets/mysql-root
+  mysql-dev-app:
+    file: ./secrets/mysql-dev-app
+  mysql-dev-migrate:
+    file: ./secrets/mysql-dev-migrate
+  mysql-prod-app:
+    file: ./secrets/mysql-prod-app
+  mysql-prod-migrate:
+    file: ./secrets/mysql-prod-migrate
+  mysql-backup:
+    file: ./secrets/mysql-backup
+  mysql-clients.cnf:
+    file: ./secrets/mysql-clients.cnf

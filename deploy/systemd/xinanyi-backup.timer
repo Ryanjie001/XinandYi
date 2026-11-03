@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily backup for Xin and Yi
+[Timer]
+OnCalendar=*-*-* 19:15:00 UTC
+Persistent=true
+RandomizedDelaySec=300
+Unit=xinanyi-backup.service
+[Install]
+WantedBy=timers.target

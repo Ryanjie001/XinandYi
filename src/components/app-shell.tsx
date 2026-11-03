@@ -122,8 +122,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
         <div className="page-transition" key={pathname}>{children}</div>
       </main>
-      <footer className="site-footer">
+      <footer className={pathname === "/" ? "site-footer site-footer-home" : "site-footer"}>
         <span>新 & 怡</span>
+        {pathname === "/" && (
+          <a href="http://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+            蜀ICP备2026067306号-1
+          </a>
+        )}
         <span>生活记录</span>
       </footer>
       {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
