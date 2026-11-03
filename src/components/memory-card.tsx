@@ -1,8 +1,7 @@
 "use client";
-import { ArrowUpRight, Camera, Heart } from "lucide-react";
+import { Camera, Image as ImageIcon } from "lucide-react";
 import type { Memory } from "@/lib/store";
 import { readableDate } from "@/lib/dates";
-
 export function MemoryCard({
   memory,
   onClick,
@@ -22,26 +21,23 @@ export function MemoryCard({
         {memory.images[0] ? (
           <img src={memory.images[0]} alt={memory.title} loading="lazy" />
         ) : (
-          <Heart size={40} strokeWidth={1} />
+          <ImageIcon size={28} strokeWidth={1} />
         )}
-        {memory.demo && <span className="image-demo">示例回忆</span>}
+        {memory.demo && <span className="image-demo">示例</span>}
         {memory.images.length > 1 && (
           <span className="photo-count">
             <Camera size={13} />
             {memory.images.length}
           </span>
         )}
-        <span className="card-open">
-          <ArrowUpRight size={20} />
-        </span>
       </div>
       <div className="memory-card-body">
         <div className="memory-date">
-          {readableDate(memory.date, true)}
-          <span>由 {memory.author} 记录</span>
+          <span>{readableDate(memory.date)}</span>
+          <span>{memory.author} 记录</span>
         </div>
         <h3>{memory.title}</h3>
-        <p>{memory.body || "照片替我们记住的瞬间。"}</p>
+        <p>{memory.body || "用照片记住这一天。"}</p>
       </div>
     </button>
   );

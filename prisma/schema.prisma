@@ -1,0 +1,178 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id            String        @id @db.VarChar(191)
+  name          String        @db.VarChar(191)
+  email         String        @unique @db.VarChar(191)
+  emailVerified Boolean       @default(false)
+  image         String?       @db.Text
+  person        String        @unique @db.VarChar(8)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  memories      Memory[]
+  wishes        Wish[]
+  photos        Photo[]
+  imports       ImportBatch[]
+
+  @@map("app_user")
+}
+
+model Session {
+  id        String   @id @db.VarChar(191)
+  token     String   @unique @db.VarChar(191)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?  @db.VarChar(191)
+  userAgent String?  @db.Text
+  userId    String   @db.VarChar(191)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_session")
+}
+
+model Account {
+  id                    String    @id @db.VarChar(191)
+  accountId             String    @db.VarChar(191)
+  providerId            String    @db.VarChar(191)
+  userId                String    @db.VarChar(191)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?   @db.Text
+  password              String?   @db.VarChar(255)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("auth_account")
+}
+
+model Verification {
+  id         String   @id @db.VarChar(191)
+  identifier String   @db.VarChar(191)
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("auth_verification")
+}
+
+model RateLimit {
+  id          String @id @default(uuid()) @db.VarChar(191)
+  key         String @unique @db.VarChar(191)
+  count       Int
+  lastRequest BigInt
+
+  @@map("auth_rate_limit")
+}
+
+model CoupleSettings {
+  id           String   @id @default("us") @db.VarChar(20)
+  startDate    String   @default("") @db.VarChar(10)
+  xinBirthday  String   @default("") @db.VarChar(10)
+  yiBirthday   String   @default("") @db.VarChar(10)
+  coverImage   String   @default("") @db.VarChar(255)
+  coverPhotoId String?  @db.VarChar(36)
+  coverPhoto   Photo?   @relation(fields: [coverPhotoId], references: [id], onDelete: Restrict)
+  version      Int      @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@map("couple_settings")
+}
+
+model Memory {
+  id        String        @id @default(uuid()) @db.VarChar(64)
+  title     String        @db.VarChar(60)
+  body      String        @db.Text
+  date      String        @db.Char(10)
+  authorId  String        @db.VarChar(191)
+  author    User          @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  images    Json
+  demo      Boolean       @default(false)
+  version   Int           @default(1)
+  wishId    String?       @unique @db.VarChar(64)
+  wish      Wish?         @relation(fields: [wishId], references: [id], onDelete: SetNull)
+  photos    MemoryPhoto[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([date, createdAt])
+  @@index([authorId])
+  @@map("memory")
+}
+
+model Wish {
+  id          String   @id @default(uuid()) @db.VarChar(64)
+  title       String   @db.VarChar(80)
+  note        String   @db.VarChar(1000)
+  category    String   @db.VarChar(20)
+  authorId    String   @db.VarChar(191)
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Restrict)
+  completedAt String?  @db.Char(10)
+  demo        Boolean  @default(false)
+  version     Int      @default(1)
+  memory      Memory?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId])
+  @@map("wish")
+}
+
+model Photo {
+  id          String           @id @default(uuid()) @db.VarChar(36)
+  objectKey   String           @unique @db.VarChar(255)
+  bucket      String           @db.VarChar(100)
+  region      String           @db.VarChar(40)
+  contentType String           @db.VarChar(40)
+  bytes       Int
+  width       Int
+  height      Int
+  ownerId     String           @db.VarChar(191)
+  owner       User             @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  status      String           @default("ready") @db.VarChar(16)
+  memories    MemoryPhoto[]
+  covers      CoupleSettings[]
+  createdAt   DateTime         @default(now())
+
+  @@index([ownerId, status])
+  @@map("photo")
+}
+
+model MemoryPhoto {
+  memoryId String @db.VarChar(64)
+  photoId  String @db.VarChar(36)
+  memory   Memory @relation(fields: [memoryId], references: [id], onDelete: Cascade)
+  photo    Photo  @relation(fields: [photoId], references: [id], onDelete: Restrict)
+
+  @@id([memoryId, photoId])
+  @@map("memory_photo")
+}
+
+model ImportBatch {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  hash      String   @unique @db.VarChar(64)
+  actorId   String   @db.VarChar(191)
+  actor     User     @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+
+  @@map("import_batch")
+}

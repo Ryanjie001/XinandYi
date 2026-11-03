@@ -3,24 +3,45 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --hostname 127.0.0.1 --port 3000",
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3000",
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 3000",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:tunnel": "node scripts/database.mjs tunnel-foreground",
+    "db:tunnel:stop": "node scripts/database.mjs tunnel-stop",
+    "db:check": "node scripts/check-database.mjs",
+    "db:backup": "node scripts/database.mjs backup",
+    "db:sync-env": "node scripts/database.mjs sync-env",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "test:integration": "node scripts/test-integration.mjs",
+    "photos:cleanup": "tsx scripts/cleanup-photos.mts"
   },
   "dependencies": {
+    "@better-auth/prisma-adapter": "1.7.13",
+    "@prisma/adapter-mariadb": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "better-auth": "1.7.13",
+    "cos-nodejs-sdk-v5": "3.0.0",
     "lucide-react": "1.61.0",
     "next": "16.4.3",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "sharp": "0.35.5",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "26.6.5",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "mysql2": "3.24.6",
     "prettier": "3.9.10",
+    "prisma": "7.10.1",
     "tailwindcss": "4.3.3",
+    "tsx": "4.23.15",
     "typescript": "7.0.2"
   }
 }

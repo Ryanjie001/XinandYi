@@ -20,7 +20,7 @@ export function Modal({
   wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const { toast } = useStore();
+  const { toast, saving } = useStore();
   const id = useId();
   useEffect(() => {
     const element = ref.current;
@@ -35,20 +35,25 @@ export function Modal({
       aria-labelledby={id}
       onCancel={(e) => {
         e.preventDefault();
-        onClose();
+        if (!saving) onClose();
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!saving && e.target === e.currentTarget) onClose();
       }}
     >
       <div className="modal-inner">
         <div className="modal-heading">
           <div>
-            <p className="eyebrow">OUR LITTLE WORLD</p>
             <h2 id={id}>{title}</h2>
             {subtitle && <p className="muted small">{subtitle}</p>}
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="关闭弹窗">
+          <button
+            type="button"
+            className="icon-button"
+            disabled={saving}
+            onClick={onClose}
+            aria-label="关闭弹窗"
+          >
             <X size={20} />
           </button>
         </div>
@@ -75,7 +80,7 @@ export function PhotoPicker({
   onBusyChange?: (busy: boolean) => void;
 }) {
   const [busy, setBusy] = useState(false);
-  const { notify } = useStore();
+  const { notify, saving } = useStore();
   const id = useId();
   return (
     <div className="photo-picker">
@@ -86,6 +91,7 @@ export function PhotoPicker({
             <button
               type="button"
               aria-label={"移除照片 " + (i + 1)}
+              disabled={busy || saving}
               onClick={() => onChange(images.filter((_, index) => index !== i))}
             >
               <X size={13} />
@@ -101,7 +107,7 @@ export function PhotoPicker({
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
               multiple={max > 1}
-              disabled={busy}
+              disabled={busy || saving}
               className="sr-only"
               onChange={async (e) => {
                 const input = e.currentTarget;

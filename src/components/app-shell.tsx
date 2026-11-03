@@ -2,28 +2,38 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { BookOpen, Heart, Leaf, LogOut, Settings2, Sparkles } from "lucide-react";
+import { BookOpen, Heart, LogOut, Settings2, ListChecks } from "lucide-react";
+import { PasswordDialog } from "@/components/password-dialog";
 import { SettingsDialog } from "@/components/forms";
 import { useStore } from "@/lib/store";
 
 export function Brand({ light = false }: { light?: boolean }) {
   return (
     <Link href="/" className={"brand " + (light ? "brand-light" : "")} aria-label="新&怡 首页">
-      <span className="brand-names">
-        新<span>&</span>怡<i />
-      </span>
-      <span className="brand-caption">A LITTLE WORLD OF US</span>
+      新<span>&</span>怡
     </Link>
   );
 }
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data, setPerson, notify, ready } = useStore();
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const {
+    data,
+    signOut,
+    ready,
+    saving,
+    error,
+    refresh,
+    legacy,
+    importLegacy,
+    exportLegacy,
+    dismissLegacy,
+  } = useStore();
+  const [settingsOpen, setSettingsOpen] = useState(false),
+    [passwordOpen, setPasswordOpen] = useState(false);
   const nav = [
     { href: "/", label: "我们", icon: Heart },
     { href: "/journal", label: "手记", icon: BookOpen },
-    { href: "/wishes", label: "愿望", icon: Sparkles },
+    { href: "/wishes", label: "愿望", icon: ListChecks },
   ];
   return (
     <div className="app-shell">
@@ -38,17 +48,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={pathname === href ? "active" : ""}
                 aria-current={pathname === href ? "page" : undefined}
               >
-                <Icon size={17} strokeWidth={1.6} />
+                <Icon size={18} strokeWidth={1.5} />
                 <span>{label}</span>
-                {pathname === href && <i />}
               </Link>
             ))}
           </nav>
           <div className="header-actions">
-            <span className="preview-badge">
-              <span />
-              本地预览
-            </span>
             <button
               className="icon-button settings-button"
               aria-label="打开我们的设置"
@@ -58,43 +63,64 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Settings2 size={19} strokeWidth={1.5} />
             </button>
             <details className="person-menu">
-              <summary aria-label="切换预览身份">
-                <span className={"avatar " + (data.person === "怡" ? "avatar-yi" : "")}>
-                  {data.person}
-                </span>
+              <summary aria-label="账号菜单">
+                <span className="avatar">{data.person}</span>
               </summary>
               <div className="person-dropdown">
-                <p>当前预览身份 · {data.person}</p>
+                <p>当前账号 · {data.person}</p>
                 <button
                   onClick={(e) => {
-                    if (setPerson(data.person === "新" ? "怡" : "新")) notify("已切换预览身份。");
+                    setPasswordOpen(true);
                     e.currentTarget.closest("details")?.removeAttribute("open");
                   }}
                 >
-                  切换为「{data.person === "新" ? "怡" : "新"}」
+                  修改密码
                 </button>
-                <Link href="/login">
+                <button onClick={() => void signOut()}>
                   <LogOut size={14} />
-                  返回登录页
-                </Link>
+                  退出 / 切换账号
+                </button>
               </div>
             </details>
           </div>
         </div>
       </header>
-      <main className="page-container">{children}</main>
+      <main className="page-container">
+        {error && (
+          <div className="service-notice" role="alert">
+            <span>{error}</span>
+            <button className="text-button" onClick={() => void refresh()}>
+              重新连接
+            </button>
+          </div>
+        )}
+        {legacy && (
+          <div className="service-notice">
+            <span>发现浏览器中的旧记录，可导入到我们的空间。</span>
+            <div className="notice-actions">
+              <button
+                className="text-button"
+                disabled={saving || !ready}
+                onClick={() => void importLegacy()}
+              >
+                {saving ? "导入中…" : "导入记录"}
+              </button>
+              <button className="text-button" onClick={exportLegacy}>
+                下载备份
+              </button>
+              <button className="text-button muted" onClick={dismissLegacy}>
+                稍后
+              </button>
+            </div>
+          </div>
+        )}
+        {children}
+      </main>
       <footer className="site-footer">
-        <div className="footer-top">
-          <span>新 & 怡</span>
-          <span>
-            平凡的日子，因为我们而闪闪发光。
-            <Leaf size={14} />
-          </span>
-        </div>
-        <p>
-          本地体验版 · 含示例内容 · 新增内容仅保存在当前浏览器，正式账号与云端存储将在下一阶段接入。
-        </p>
+        <span>新 & 怡</span>
+        <span>记录我们，共同的日常。</span>
       </footer>
+      {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}
     </div>
   );

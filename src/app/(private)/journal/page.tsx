@@ -30,14 +30,8 @@ export default function JournalPage() {
     <AppShell>
       <section className="page-intro">
         <div>
-          <p className="eyebrow">
-            <span className="short-line" />
-            THE DAYS WE KEEP
-          </p>
-          <h1>
-            恋爱手记<span className="rose-text">。</span>
-          </h1>
-          <p>把喜欢的日子，收藏起来。以后再读，还是会心动。</p>
+          <h1>恋爱手记</h1>
+          <p>把值得记住的片刻，留在这里。</p>
         </div>
         <button
           className="button button-primary"
@@ -48,14 +42,6 @@ export default function JournalPage() {
           写一篇手记
         </button>
       </section>
-      <div className="journal-summary">
-        <BookHeart size={17} strokeWidth={1.5} />
-        <span>
-          这里有 <strong>{data.memories.length}</strong> 个属于我们的瞬间
-        </span>
-        <span className="summary-dot" />
-        <span>慢慢写，慢慢爱。</span>
-      </div>
       <div className="filter-bar">
         <div className="filter-tabs" aria-label="按记录人筛选">
           {(["all", "新", "怡"] as const).map((person) => (
@@ -74,7 +60,7 @@ export default function JournalPage() {
           <span className="sr-only">搜索手记</span>
           <input
             aria-label="搜索手记"
-            placeholder="找找某个瞬间…"
+            placeholder="搜索标题或内容"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -94,7 +80,7 @@ export default function JournalPage() {
                 <strong>
                   {month.slice(0, 4)} 年 · {Number(month.slice(5))} 月
                 </strong>
-                <span>{memories.length} 个小小的瞬间</span>
+                <span>{memories.length} 篇手记</span>
               </div>
               <span className="month-line" />
             </div>
@@ -137,11 +123,6 @@ export default function JournalPage() {
             }
           />
         )}
-      </div>
-      <div className="page-end">
-        <span />
-        <span>那些微小的幸福，都被好好收着。</span>
-        <span />
       </div>
       {editor && (
         <MemoryForm

@@ -1,15 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import {
-  ArrowUpRight,
-  Check,
-  CheckCheck,
-  MoreHorizontal,
-  Plus,
-  Sparkles,
-  Star,
-} from "lucide-react";
+import { ArrowUpRight, Check, CheckCheck, MoreHorizontal, Plus, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { WishForm, WishRecord } from "@/components/forms";
 import { EmptyState } from "@/components/ui";
@@ -17,7 +9,7 @@ import { useStore, type Wish } from "@/lib/store";
 import { readableDate } from "@/lib/dates";
 
 export default function WishesPage() {
-  const { data, toggleWish, notify, ready } = useStore();
+  const { data, toggleWish, notify, ready, saving } = useStore();
   const [filter, setFilter] = useState<"pending" | "done" | "all">("pending");
   const [editor, setEditor] = useState<Wish | "new" | null>(null);
   const [record, setRecord] = useState<Wish | null>(null);
@@ -26,41 +18,26 @@ export default function WishesPage() {
   const wishes = data.wishes.filter(
     (wish) => filter === "all" || (filter === "done" ? !!wish.completedAt : !wish.completedAt),
   );
-  const categoryClasses: Record<string, string> = {
-    去远方: "tag-travel",
-    小日常: "tag-daily",
-    小浪漫: "tag-romance",
-    慢慢来: "tag-slow",
-  };
   return (
     <AppShell>
       <section className="page-intro">
         <div>
-          <p className="eyebrow">
-            <span className="short-line" />
-            SOMEDAY, TOGETHER
-          </p>
-          <h1>
-            一起完成的事<span className="rose-text">。</span>
-          </h1>
-          <p>有些期待，一个人是愿望，两个人就成了计划。</p>
+          <h1>愿望清单</h1>
+          <p>记下想一起做的事，一件件慢慢实现。</p>
         </div>
         <button
           className="button button-primary"
           onClick={() => setEditor("new")}
-          disabled={!ready}
+          disabled={!ready || saving}
         >
           <Plus size={18} />
-          许一个愿望
+          添加愿望
         </button>
       </section>
       <section className="wish-progress">
-        <div className="wish-progress-icon">
-          <Sparkles size={30} strokeWidth={1.2} />
-        </div>
         <div className="wish-progress-copy">
-          <p>我们的愿望，正在一点点实现。</p>
-          <span>每完成一件，未来就多一段可以回忆的故事。</span>
+          <p>共同完成</p>
+          <span>每一件期待，都有属于它的时间。</span>
         </div>
         <div className="progress-detail">
           <div>
@@ -101,16 +78,12 @@ export default function WishesPage() {
             </button>
           ))}
         </div>
-        <span className="small muted desktop-only">不着急，我们有很多个明天。</span>
       </div>
       <div className="wish-grid">
         {wishes.map((wish) => (
           <article key={wish.id} className={"wish-card " + (wish.completedAt ? "wish-done" : "")}>
             <div className="wish-card-top">
-              <span className={"category-tag " + (categoryClasses[wish.category] || "tag-slow")}>
-                {wish.category === "去远方" ? <ArrowUpRight size={12} /> : <Star size={12} />}
-                {wish.category}
-              </span>
+              <span className="category-tag">{wish.category}</span>
               <button
                 className="icon-button"
                 aria-label={"编辑愿望：" + wish.title}
@@ -119,11 +92,8 @@ export default function WishesPage() {
                 <MoreHorizontal size={21} />
               </button>
             </div>
-            <span className="wish-card-index">
-              NO. {String(data.wishes.indexOf(wish) + 1).padStart(2, "0")}
-            </span>
             <h2>{wish.title}</h2>
-            <p>{wish.note || "想和你一起，认真完成这件小事。"}</p>
+            <p>{wish.note || "还没有补充说明。"}</p>
             <div className="wish-card-bottom">
               <span className="wish-author">
                 <span
@@ -131,15 +101,15 @@ export default function WishesPage() {
                 >
                   {wish.author}
                 </span>
-                {wish.author} 的小期待{wish.demo && <span className="demo-tag">示例</span>}
+                {wish.author} 添加{wish.demo && <span className="demo-tag">示例</span>}
               </span>
               <button
                 className={"wish-check " + (wish.completedAt ? "checked" : "")}
                 aria-label={(wish.completedAt ? "恢复为期待中：" : "标记完成：") + wish.title}
                 aria-pressed={!!wish.completedAt}
-                disabled={!ready}
-                onClick={() => {
-                  if (toggleWish(wish.id))
+                disabled={!ready || saving}
+                onClick={async () => {
+                  if (await toggleWish(wish.id))
                     notify(wish.completedAt ? "已恢复为期待中。" : "又一起实现了一个愿望！");
                 }}
               >
@@ -167,12 +137,16 @@ export default function WishesPage() {
             )}
           </article>
         ))}
-        <button className="wish-add-card" onClick={() => setEditor("new")} disabled={!ready}>
+        <button
+          className="wish-add-card"
+          onClick={() => setEditor("new")}
+          disabled={!ready || saving}
+        >
           <span>
             <Plus size={26} strokeWidth={1.3} />
           </span>
-          <strong>下一个期待，是什么？</strong>
-          <p>把想和你一起做的事，都写下来。</p>
+          <strong>添加一个愿望</strong>
+          <p>一起期待下一件事。</p>
         </button>
       </div>
       {!wishes.length && (
@@ -186,37 +160,10 @@ export default function WishesPage() {
           }
         />
       )}
-      <div className="wish-quote">
-        <span>“</span>
-        <p>
-          人生有很多种可能，
-          <br />
-          我想和你，一种一种试。
-        </p>
-        <HeartDoodle />
-      </div>
       {editor && (
         <WishForm wish={editor === "new" ? undefined : editor} onClose={() => setEditor(null)} />
       )}
       {record && <WishRecord wish={record} onClose={() => setRecord(null)} />}
     </AppShell>
-  );
-}
-function HeartDoodle() {
-  return (
-    <svg width="55" height="38" viewBox="0 0 55 38" fill="none" aria-hidden="true">
-      <path
-        d="M28 32C19 25 9 19 12 11c3-9 14-6 16 0C32 2 44 6 43 14c-1 8-15 18-15 18Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-      />
-      <path
-        d="m47 4 4-2M49 12l4 1M7 26l-4 3"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }

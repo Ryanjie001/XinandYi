@@ -1,0 +1,30 @@
+[Unit]
+Description=Xin and Yi private relationship website
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=xinanyi
+Group=xinanyi
+WorkingDirectory=/srv/xinanyi/current
+EnvironmentFile=/etc/xinanyi/app.env
+ExecStart=/usr/local/bin/node /srv/xinanyi/current/node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/xinanyi /srv/xinanyi/current/.next-production/cache
+UMask=0077
+MemoryHigh=512M
+MemoryMax=700M
+CPUQuota=150%
+TasksMax=128
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target
