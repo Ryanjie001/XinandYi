@@ -18,14 +18,31 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         onSubmit={async (e) => {
           e.preventDefault();
           const values = new FormData(e.currentTarget);
-          const updated = {
+          const lunarDate = (key: "xin" | "yi") => {
+            const month = String(values.get(key + "LunarMonth") || "");
+            const day = String(values.get(key + "LunarDay") || "");
+            return month && day ? month + "-" + day : month || day ? null : "";
+          };
+          const xinLunarBirthday = lunarDate("xin"),
+            yiLunarBirthday = lunarDate("yi");
+          if (xinLunarBirthday === null || yiLunarBirthday === null) {
+            notify("请同时选择农历月份和日期。");
+            return;
+          }
+          const updated: Settings = {
             ...settings,
             startDate: String(values.get("startDate") || ""),
             xinBirthday: String(values.get("xinBirthday") || ""),
             yiBirthday: String(values.get("yiBirthday") || ""),
+            xinLunarBirthday,
+            yiLunarBirthday,
+            xinLunarLeap: values.get("xinLunarLeap") === "yes",
+            yiLunarLeap: values.get("yiLunarLeap") === "yes",
+            xinBirthdayCalendar: values.get("xinBirthdayCalendar") === "lunar" ? "lunar" : "solar",
+            yiBirthdayCalendar: values.get("yiBirthdayCalendar") === "lunar" ? "lunar" : "solar",
           };
           if (await saveSettings(updated)) {
-            notify("属于我们的日子，已经记好了。");
+            notify("设置已保存。");
             onClose();
           }
         }}
@@ -45,28 +62,88 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
           </span>
         </label>
         <p className="field-hint">第一天按第 1 天计算，日期以北京时间为准。</p>
-        <div className="form-row">
-          <label className="field">
-            新的生日
-            <input
-              type="date"
-              name="xinBirthday"
-              defaultValue={settings.xinBirthday}
-              min="1900-01-01"
-              max={today()}
-            />
-          </label>
-          <label className="field">
-            怡的生日
-            <input
-              type="date"
-              name="yiBirthday"
-              defaultValue={settings.yiBirthday}
-              min="1900-01-01"
-              max={today()}
-            />
-          </label>
+        <div className="form-row birthday-row">
+          {(["xin", "yi"] as const).map((key) => {
+            const person = key === "xin" ? "新" : "怡";
+            const solar = key === "xin" ? settings.xinBirthday : settings.yiBirthday;
+            const lunar = key === "xin" ? settings.xinLunarBirthday : settings.yiLunarBirthday;
+            const leap = key === "xin" ? settings.xinLunarLeap : settings.yiLunarLeap;
+            const calendar =
+              key === "xin" ? settings.xinBirthdayCalendar : settings.yiBirthdayCalendar;
+            const [month = "", day = ""] = lunar.split("-");
+            return (
+              <fieldset className="birthday-fields" key={key}>
+                <legend>{person}的生日</legend>
+                <label className="field">
+                  阳历
+                  <input
+                    type="date"
+                    name={key + "Birthday"}
+                    defaultValue={solar}
+                    aria-label={person + "的阳历生日"}
+                    min="1900-01-01"
+                    max={today()}
+                  />
+                </label>
+                <label className="field">
+                  农历月份
+                  <select
+                    name={key + "LunarMonth"}
+                    defaultValue={month}
+                    aria-label={person + "的农历月份"}
+                  >
+                    <option value="">未设置</option>
+                    {Array.from({ length: 12 }, (_, i) => (
+                      <option key={i} value={String(i + 1).padStart(2, "0")}>
+                        {i + 1} 月
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  农历日期
+                  <select
+                    name={key + "LunarDay"}
+                    defaultValue={day}
+                    aria-label={person + "的农历日期"}
+                  >
+                    <option value="">未设置</option>
+                    {Array.from({ length: 30 }, (_, i) => (
+                      <option key={i} value={String(i + 1).padStart(2, "0")}>
+                        {i + 1} 日
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  是否闰月
+                  <select
+                    name={key + "LunarLeap"}
+                    defaultValue={leap ? "yes" : "no"}
+                    aria-label={person + "的农历闰月"}
+                  >
+                    <option value="no">普通月份</option>
+                    <option value="yes">闰月</option>
+                  </select>
+                </label>
+                <label className="field">
+                  展示和倒计时
+                  <select
+                    name={key + "BirthdayCalendar"}
+                    defaultValue={calendar}
+                    aria-label={person + "展示的生日"}
+                  >
+                    <option value="solar">阳历生日</option>
+                    <option value="lunar">农历生日</option>
+                  </select>
+                </label>
+              </fieldset>
+            );
+          })}
         </div>
+        <p className="field-hint birthday-hint">
+          所选生日未填写时不会展示。闰月生日遇到无闰月的年份按普通月计算；农历三十遇小月按二十九计算。
+        </p>
         <div className="field">
           <span>首页照片</span>
           <PhotoPicker
@@ -114,7 +191,7 @@ export function MemoryForm({ memory, onClose }: { memory?: Memory; onClose: () =
             version: memory?.version,
           };
           if (await saveMemory(item)) {
-            notify(memory ? "手记已更新。" : "又收藏了一个属于我们的瞬间。");
+            notify(memory ? "手记已更新。" : "手记已保存。");
             onClose();
           }
         }}
@@ -210,7 +287,7 @@ export function MemoryDetail({
           )}
         </div>
       )}
-      <p className="detail-body">{memory.body || "照片已经替我们记下了这一天。"}</p>
+      <p className="detail-body">{memory.body || "暂无正文。"}</p>
       {data.person === memory.author && (
         <div className="detail-actions">
           {confirmDelete ? (
@@ -274,7 +351,7 @@ export function WishForm({ wish, onClose }: { wish?: Wish; onClose: () => void }
               version: wish?.version,
             })
           ) {
-            notify("这份期待，我们一起记着。");
+            notify("愿望已保存。");
             onClose();
           }
         }}
@@ -352,7 +429,7 @@ export function WishRecord({ wish, onClose }: { wish: Wish; onClose: () => void 
         onSubmit={async (e) => {
           e.preventDefault();
           if (await recordWish(wish.id, note.trim(), images)) {
-            notify("愿望已完成，也已收藏进恋爱手记。");
+            notify("愿望已完成，手记已保存。");
             onClose();
           }
         }}

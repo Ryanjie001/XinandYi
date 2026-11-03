@@ -62,6 +62,8 @@ export function POST(request: Request) {
           !settings.startDate &&
           !settings.xinBirthday &&
           !settings.yiBirthday &&
+          !settings.xinLunarBirthday &&
+          !settings.yiLunarBirthday &&
           !settings.coverImage
         ) {
           const p = await validPhotos(

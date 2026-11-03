@@ -16,7 +16,7 @@ export function PasswordDialog({ onClose }: { onClose: () => void }) {
       onClose={() => {
         if (!pending) onClose();
       }}
-      title="修改我们的通行密码"
+      title="修改密码"
       subtitle="修改后，其他设备上的登录会失效。"
     >
       <form

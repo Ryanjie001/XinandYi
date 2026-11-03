@@ -37,7 +37,7 @@ export function MemoryCard({
           <span>{memory.author} 记录</span>
         </div>
         <h3>{memory.title}</h3>
-        <p>{memory.body || "用照片记住这一天。"}</p>
+        <p>{memory.body || "暂无正文。"}</p>
       </div>
     </button>
   );

@@ -34,3 +34,55 @@ export function nextOccurrence(date: string) {
   if (next < timestamp(current)) next = occurrence(year + 1);
   return Math.round((next - timestamp(current)) / DAY);
 }
+
+type LunarDay = { month: number; day: number; leap: boolean; time: number };
+const lunarYears = new Map<number, LunarDay[]>();
+const lunarFormatter = new Intl.DateTimeFormat("en-US-u-ca-chinese", {
+  timeZone: "UTC",
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+});
+function lunarYearDays(year: number) {
+  const cached = lunarYears.get(year);
+  if (cached) return cached;
+  const days: LunarDay[] = [];
+  // A complete lunar year always lies between these Gregorian boundaries.
+  for (let time = Date.UTC(year, 0, 1); time < Date.UTC(year + 1, 2, 1); time += DAY) {
+    const parts = lunarFormatter.formatToParts(new Date(time));
+    const value = (type: string) => parts.find((part) => part.type === type)?.value || "";
+    if (Number(value("relatedYear")) !== year) continue;
+    const month = value("month");
+    days.push({
+      month: parseInt(month, 10),
+      day: Number(value("day")),
+      leap: month.endsWith("bis"),
+      time,
+    });
+  }
+  lunarYears.set(year, days);
+  return days;
+}
+export function readableLunarDate(date: string, leap = false) {
+  if (!date) return "还未设置";
+  const [month, day] = date.split("-").map(Number);
+  return "农历 " + (leap ? "闰" : "") + month + " 月 " + day + " 日";
+}
+export function nextLunarOccurrence(date: string, leap = false, current = today()) {
+  if (!date) return null;
+  const [month, day] = date.split("-").map(Number);
+  if (!(month >= 1 && month <= 12 && day >= 1 && day <= 30)) return null;
+  const currentTime = timestamp(current);
+  const year = Number(current.slice(0, 4));
+  for (const lunarYear of [year - 1, year, year + 1]) {
+    const monthDays = lunarYearDays(lunarYear).filter((item) => item.month === month);
+    // A leap-month birthday falls in the regular month when the leap month is absent.
+    const useLeap = leap && monthDays.some((item) => item.leap);
+    const eligible = monthDays.filter((item) => item.leap === useLeap);
+    const selected =
+      eligible.find((item) => item.day === day) || (day === 30 ? eligible.at(-1) : undefined);
+    if (selected && selected.time >= currentTime)
+      return Math.round((selected.time - currentTime) / DAY);
+  }
+  return null;
+}

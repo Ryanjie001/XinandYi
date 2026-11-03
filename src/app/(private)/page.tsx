@@ -6,7 +6,13 @@ import { AppShell } from "@/components/app-shell";
 import { MemoryCard } from "@/components/memory-card";
 import { MemoryDetail, MemoryForm, SettingsDialog } from "@/components/forms";
 import { useStore, type Memory } from "@/lib/store";
-import { nextOccurrence, readableDate, togetherDays } from "@/lib/dates";
+import {
+  nextOccurrence,
+  nextLunarOccurrence,
+  readableDate,
+  readableLunarDate,
+  togetherDays,
+} from "@/lib/dates";
 
 export default function HomePage() {
   const { data, ready } = useStore();
@@ -16,13 +22,47 @@ export default function HomePage() {
   const days = togetherDays(data.settings.startDate);
   const memories = [...data.memories].sort((a, b) => b.date.localeCompare(a.date));
   const completed = data.wishes.filter((w) => w.completedAt).length;
+  const birthday = (
+    name: string,
+    solar: string,
+    lunar: string,
+    leap: boolean,
+    calendar: "solar" | "lunar",
+  ) => {
+    const date = calendar === "lunar" ? lunar : solar;
+    return {
+      name,
+      date,
+      display: calendar === "lunar" ? readableLunarDate(date, leap) : "阳历 " + readableDate(date),
+      remaining: calendar === "lunar" ? nextLunarOccurrence(date, leap) : nextOccurrence(date),
+    };
+  };
   const upcoming = [
-    { name: "我们的纪念日", date: data.settings.startDate },
-    { name: "新的生日", date: data.settings.xinBirthday },
-    { name: "怡的生日", date: data.settings.yiBirthday },
+    {
+      name: "我们的纪念日",
+      date: data.settings.startDate,
+      display: readableDate(data.settings.startDate),
+      remaining: nextOccurrence(data.settings.startDate),
+    },
+    birthday(
+      "新的生日",
+      data.settings.xinBirthday,
+      data.settings.xinLunarBirthday,
+      data.settings.xinLunarLeap,
+      data.settings.xinBirthdayCalendar,
+    ),
+    birthday(
+      "怡的生日",
+      data.settings.yiBirthday,
+      data.settings.yiLunarBirthday,
+      data.settings.yiLunarLeap,
+      data.settings.yiBirthdayCalendar,
+    ),
   ]
-    .filter((item) => item.date)
-    .map((item) => ({ ...item, remaining: nextOccurrence(item.date) ?? 0 }))
+    .filter(
+      (item): item is typeof item & { remaining: number } =>
+        Boolean(item.date) && item.remaining !== null,
+    )
     .sort((a, b) => a.remaining - b.remaining);
   const detail = data.memories.find((m) => m.id === detailId);
   return (
@@ -38,16 +78,16 @@ export default function HomePage() {
               </>
             ) : (
               <>
-                我们的日常，
+                我们的
                 <br />
-                值得记住。
+                生活记录。
               </>
             )}
           </h1>
           <p className="hero-description">
             {days
               ? "从 " + readableDate(data.settings.startDate, true) + " 开始。"
-              : "照片、片刻，和下一次期待。"}
+              : "记录每一天。"}
           </p>
           <div className="hero-buttons">
             <button
@@ -137,7 +177,7 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="empty-inline">
-            <p>{ready ? "从第一篇手记开始。" : "正在读取手记…"}</p>
+            <p>{ready ? "暂无手记。" : "正在读取手记…"}</p>
             <button className="text-button" disabled={!ready} onClick={() => setEditor("new")}>
               写一篇手记
               <ArrowRight size={16} />
@@ -166,7 +206,7 @@ export default function HomePage() {
                 </Link>
               ))}
             {ready && !data.wishes.some((w) => !w.completedAt) && (
-              <p className="muted">愿望都已实现，写下新的期待吧。</p>
+              <p className="muted">暂无未完成愿望。</p>
             )}
           </div>
         </div>
@@ -184,7 +224,7 @@ export default function HomePage() {
                 <div key={item.name}>
                   <div>
                     <strong>{item.name}</strong>
-                    <span>{readableDate(item.date)}</span>
+                    <span>{item.display}</span>
                   </div>
                   <span className="anniversary-count">
                     {item.remaining === 0 ? "今天" : item.remaining + " 天后"}

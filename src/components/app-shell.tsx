@@ -118,7 +118,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="site-footer">
         <span>新 & 怡</span>
-        <span>记录我们，共同的日常。</span>
+        <span>生活记录</span>
       </footer>
       {passwordOpen && <PasswordDialog onClose={() => setPasswordOpen(false)} />}
       {settingsOpen && <SettingsDialog onClose={() => setSettingsOpen(false)} />}

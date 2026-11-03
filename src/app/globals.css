@@ -1752,3 +1752,20 @@ form > .field + .field-hint {
     transition-duration: 0.01ms !important;
   }
 }
+
+.birthday-fields {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.birthday-fields legend {
+  margin-bottom: 12px;
+  color: var(--ink);
+}
+.birthday-fields .field {
+  margin-bottom: 14px;
+}
+.birthday-hint {
+  margin: -2px 0 22px;
+}

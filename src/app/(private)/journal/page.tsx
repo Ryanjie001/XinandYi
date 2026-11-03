@@ -31,7 +31,7 @@ export default function JournalPage() {
       <section className="page-intro">
         <div>
           <h1>恋爱手记</h1>
-          <p>把值得记住的片刻，留在这里。</p>
+          <p>记录生活。</p>
         </div>
         <button
           className="button button-primary"
@@ -98,11 +98,9 @@ export default function JournalPage() {
         {!filtered.length && (
           <EmptyState
             icon={<BookHeart size={30} strokeWidth={1.2} />}
-            title={query || author !== "all" ? "这个瞬间，还没找到" : "第一页，留给我们"}
+            title={query || author !== "all" ? "没有找到手记" : "还没有手记"}
             description={
-              query || author !== "all"
-                ? "换个关键词，或看看全部手记。"
-                : "一句话、一张照片，都可以是故事的开始。"
+              query || author !== "all" ? "换个关键词，或看看全部手记。" : "添加第一篇手记。"
             }
             action={
               query || author !== "all" ? (

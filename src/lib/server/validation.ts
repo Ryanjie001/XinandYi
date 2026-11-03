@@ -28,10 +28,19 @@ export const memoryInput = z.object({
   images: z.array(image).max(3),
 });
 export const memoryUpdate = memoryInput.extend({ version: z.number().int().positive() });
+const lunarBirthday = z
+  .string()
+  .regex(/^(?:|(?:0[1-9]|1[0-2])-(?:0[1-9]|[12][0-9]|30))$/, "请选择有效的农历月日。");
 export const settingsInput = z.object({
   startDate: z.union([date, z.literal("")]),
   xinBirthday: z.union([date, z.literal("")]),
   yiBirthday: z.union([date, z.literal("")]),
+  xinLunarBirthday: lunarBirthday.default(""),
+  yiLunarBirthday: lunarBirthday.default(""),
+  xinLunarLeap: z.boolean().default(false),
+  yiLunarLeap: z.boolean().default(false),
+  xinBirthdayCalendar: z.enum(["solar", "lunar"]).default("solar"),
+  yiBirthdayCalendar: z.enum(["solar", "lunar"]).default("solar"),
   coverImage: z.union([image, z.literal("")]),
   version: z.number().int().positive(),
 });

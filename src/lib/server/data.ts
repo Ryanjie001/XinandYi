@@ -22,6 +22,12 @@ export async function state(user: Actor) {
       startDate: settings.startDate,
       xinBirthday: settings.xinBirthday,
       yiBirthday: settings.yiBirthday,
+      xinLunarBirthday: settings.xinLunarBirthday,
+      yiLunarBirthday: settings.yiLunarBirthday,
+      xinLunarLeap: settings.xinLunarLeap,
+      yiLunarLeap: settings.yiLunarLeap,
+      xinBirthdayCalendar: settings.xinBirthdayCalendar as "solar" | "lunar",
+      yiBirthdayCalendar: settings.yiBirthdayCalendar as "solar" | "lunar",
       coverImage: settings.coverImage,
       version: settings.version,
     },
@@ -81,6 +87,12 @@ export async function changeSettings(
     startDate: string;
     xinBirthday: string;
     yiBirthday: string;
+    xinLunarBirthday: string;
+    yiLunarBirthday: string;
+    xinLunarLeap: boolean;
+    yiLunarLeap: boolean;
+    xinBirthdayCalendar: "solar" | "lunar";
+    yiBirthdayCalendar: "solar" | "lunar";
     coverImage: string;
     version: number;
   },

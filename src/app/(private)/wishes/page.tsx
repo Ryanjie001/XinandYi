@@ -23,7 +23,7 @@ export default function WishesPage() {
       <section className="page-intro">
         <div>
           <h1>愿望清单</h1>
-          <p>记下想一起做的事，一件件慢慢实现。</p>
+          <p>记录想一起做的事。</p>
         </div>
         <button
           className="button button-primary"
@@ -37,7 +37,7 @@ export default function WishesPage() {
       <section className="wish-progress">
         <div className="wish-progress-copy">
           <p>共同完成</p>
-          <span>每一件期待，都有属于它的时间。</span>
+          <span>愿望进度</span>
         </div>
         <div className="progress-detail">
           <div>
@@ -110,7 +110,7 @@ export default function WishesPage() {
                 disabled={!ready || saving}
                 onClick={async () => {
                   if (await toggleWish(wish.id))
-                    notify(wish.completedAt ? "已恢复为期待中。" : "又一起实现了一个愿望！");
+                    notify(wish.completedAt ? "已恢复为期待中。" : "愿望已完成。");
                 }}
               >
                 <Check size={17} />
@@ -146,18 +146,14 @@ export default function WishesPage() {
             <Plus size={26} strokeWidth={1.3} />
           </span>
           <strong>添加一个愿望</strong>
-          <p>一起期待下一件事。</p>
+          <p>添加愿望。</p>
         </button>
       </div>
       {!wishes.length && (
         <EmptyState
           icon={<Sparkles size={30} strokeWidth={1.2} />}
-          title={filter === "done" ? "美好，正在路上" : "新的期待，从这里开始"}
-          description={
-            filter === "done"
-              ? "实现一个愿望，就会在这里留下一颗小星星。"
-              : "一起想想，下一件让我们开心的小事。"
-          }
+          title={filter === "done" ? "暂无已完成愿望" : "暂无愿望"}
+          description={filter === "done" ? "完成的愿望会显示在这里。" : "添加一个愿望。"}
         />
       )}
       {editor && (

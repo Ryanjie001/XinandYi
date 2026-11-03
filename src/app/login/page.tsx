@@ -25,9 +25,9 @@ export default function LoginPage() {
         <div className="login-poem">
           <p>属于我们的记录</p>
           <h1>
-            日常，
+            我们的
             <br />
-            慢慢收藏。
+            生活记录。
           </h1>
         </div>
         <span className="login-image-note">新与怡的共同空间</span>
@@ -43,7 +43,7 @@ export default function LoginPage() {
         <div className="login-form">
           <p className="eyebrow">新 & 怡</p>
           <h2>欢迎回来。</h2>
-          <p className="login-description">继续记录我们的日常。</p>
+          <p className="login-description">登录后查看记录。</p>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
@@ -116,7 +116,7 @@ export default function LoginPage() {
               </p>
             )}
             <button className="button button-primary login-submit" disabled={pending}>
-              {pending ? "正在登录…" : "进入我们的空间"}
+              {pending ? "正在登录…" : "登录"}
               <ArrowRight size={16} />
             </button>
           </form>
@@ -125,7 +125,7 @@ export default function LoginPage() {
             仅对新与怡开放
           </p>
         </div>
-        <div className="login-bottom">两个人，一起记录。</div>
+        <div className="login-bottom">新 & 怡</div>
       </section>
     </main>
   );

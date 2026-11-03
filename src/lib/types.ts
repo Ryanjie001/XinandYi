@@ -25,6 +25,12 @@ export type Settings = {
   startDate: string;
   xinBirthday: string;
   yiBirthday: string;
+  xinLunarBirthday: string;
+  yiLunarBirthday: string;
+  xinLunarLeap: boolean;
+  yiLunarLeap: boolean;
+  xinBirthdayCalendar: "solar" | "lunar";
+  yiBirthdayCalendar: "solar" | "lunar";
   coverImage: string;
   version?: number;
 };
