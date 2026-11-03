@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+dist/
+.env*
+!.env.example
+*.tsbuildinfo
+*.log
+.DS_Store
+coverage/
+work/
+.next-production/
+
+deploy/secrets/
+deploy/data/
+deploy/backups/
+/src/generated/
